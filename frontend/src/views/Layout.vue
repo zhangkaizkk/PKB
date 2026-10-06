@@ -103,6 +103,7 @@ onMounted(async () => {
           >
             <template #prefix>🔍</template>
           </n-input>
+          <n-button size="large" type="primary" style="margin-left: 8px" @click="onSearch(searchQ)">搜索</n-button>
         </div>
         <div class="top-right">
           <n-dropdown
