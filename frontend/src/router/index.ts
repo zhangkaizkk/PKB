@@ -11,14 +11,13 @@ const router = createRouter({
       meta: { public: true },
     },
     {
+      // 共用 Layout（带 Sider + Header）
       path: '/',
-      name: 'home',
-      component: () => import('@/views/HomeView.vue'),
-    },
-    {
-      path: '/trash',
-      name: 'trash',
-      component: () => import('@/views/TrashView.vue'),
+      component: () => import('@/views/Layout.vue'),
+      children: [
+        { path: '', name: 'home', component: () => import('@/views/HomeView.vue') },
+        { path: 'trash', name: 'trash', component: () => import('@/views/TrashView.vue') },
+      ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
