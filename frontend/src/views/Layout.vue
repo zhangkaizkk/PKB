@@ -83,15 +83,8 @@ onMounted(async () => {
         @update:value="onMenuSelect"
       />
       <div v-if="menuValue === 'files'" class="tags-section">
-        <div class="tags-title">标签</div>
         <div class="tags-list">
           <n-tag v-if="!selectedTagId" round type="info" size="small" style="cursor: pointer" @click="onTagSelect(undefined)">全部</n-tag>
-          <n-tag
-            v-for="t in tags" :key="t.id" round size="small"
-            :type="selectedTagId === t.id ? 'primary' : 'default'"
-            style="cursor: pointer"
-            @click="onTagSelect(selectedTagId === t.id ? undefined : t.id)"
-          >{{ t.name }}</n-tag>
         </div>
       </div>
     </n-layout-sider>
