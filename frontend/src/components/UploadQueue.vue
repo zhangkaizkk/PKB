@@ -25,7 +25,12 @@ function fmtSize(b: number) {
       <div class="uq-name" :title="t.name">{{ t.name }}</div>
       <div class="uq-size">{{ fmtSize(t.size) }}</div>
       <div class="uq-bar">
-        <n-progress type="line" :percentage="t.progress" :status="t.status === 'error' ? 'error' : t.status === 'done' || t.status === 'duplicate' ? 'success' : undefined" :show-indicator="false" />
+        <n-progress
+          type="line"
+          :percentage="t.status === 'done' || t.status === 'duplicate' ? 100 : t.status === 'error' ? 100 : Math.max(t.progress, 0)"
+          :status="t.status === 'error' ? 'error' : t.status === 'done' || t.status === 'duplicate' ? 'success' : undefined"
+          :show-indicator="false"
+        />
       </div>
       <div class="uq-status" :class="t.status">
         {{

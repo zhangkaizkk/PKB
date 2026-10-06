@@ -56,24 +56,19 @@ export const useUploadStore = defineStore('upload', () => {
       .then((res) => {
         const item = res.data.items[0]
         if (!item) {
-          task.status = 'error'
-          task.error = '服务器无响应'
+          Object.assign(task, { status: 'error' as const, error: '服务器无响应' })
         } else if (item.status === 'duplicate') {
-          task.status = 'duplicate'
-          task.progress = 100
+          Object.assign(task, { status: 'duplicate' as const, progress: 100 })
           _scheduleRefresh()
         } else if (item.status === 'created') {
-          task.status = 'done'
-          task.progress = 100
+          Object.assign(task, { status: 'done' as const, progress: 100 })
           _scheduleRefresh()
         } else {
-          task.status = 'error'
-          task.error = item.error || '上传失败'
+          Object.assign(task, { status: 'error' as const, error: item.error || '上传失败' })
         }
       })
       .catch((err) => {
-        task.status = 'error'
-        task.error = err?.message || '网络错误'
+        Object.assign(task, { status: 'error' as const, error: err?.message || '网络错误' })
       })
       .finally(() => {
         _active.value--
