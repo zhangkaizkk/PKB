@@ -24,6 +24,7 @@
 | `43f29e6` | docs | 补充之前漏的两条记录 | ✅ |
 | `4e5a983` | docs | 精简改版记录格式，只留 hash/类型/原因/状态四列 | ✅ |
 | `9945787` | fix | 上传成功后文件列表不刷新，upload store 与 files store 无联动，加 400ms debounce 触发 list | ✅ |
+| `c4302b8` | fix | 上传进度条不动，axios `onUploadProgress` 要求 `e.total` 存在才触发，快传场景下 total 常为 undefined | ✅ |
 
 ---
 
