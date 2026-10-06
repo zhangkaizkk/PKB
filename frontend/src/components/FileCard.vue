@@ -49,21 +49,15 @@ async function onDownload() {
 }
 
 async function onRename() {
+  const newName = window.prompt('新名称', props.item.original_name)
+  if (!newName || newName === props.item.original_name) return
   try {
-    const val = await dialog.warning({
-      title: '重命名',
-      content: '',
-      action: () => {},
-      positiveText: '保存',
-      negativeText: '取消',
-    })
-    // NDialog 简化版：直接用 prompt
-    const newName = window.prompt('新名称', props.item.original_name)
-    if (!newName || newName === props.item.original_name) return
     await filesApi.patch(props.item.public_id, { original_name: newName })
-    message.success('已重命名')
+    message.success('重命名成功')
     emit('refresh')
-  } catch { /* user cancel */ }
+  } catch (err: any) {
+    message.error(err?.response?.data?.detail || '重命名失败')
+  }
 }
 
 async function onSoftDelete() {
