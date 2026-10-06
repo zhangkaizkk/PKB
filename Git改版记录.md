@@ -15,7 +15,7 @@
 | `9bf33f8` | style | 重命名弹 dialog.warning 黄色感叹号图标语义错误（不是警告），改为单 prompt | ✅ |
 | `62c153d` | refactor | 点回收站侧边栏消失，平级路由切换时 HomeView 整体卸载，改为嵌套路由共用 Layout | ✅ |
 
-## 后续
+## v0.0.2
 
 | Hash | 类型 | 原因 | 状态 |
 |---|---|---|---|
@@ -23,6 +23,11 @@
 | `6f54783` | style | 侧边栏动态标签（e2e-test 等）多余，只留「全部」按钮 | ✅ |
 | `43f29e6` | docs | 补充之前漏的两条记录 | ✅ |
 | `4e5a983` | docs | 精简改版记录格式，只留 hash/类型/原因/状态四列 | ✅ |
+
+## v0.0.3
+
+| Hash | 类型 | 原因 | 状态 |
+|---|---|---|---|
 | `9945787` | fix | 上传成功后文件列表不刷新，upload store 与 files store 无联动，加 400ms debounce 触发 list | ✅ |
 | `c4302b8` | fix | 上传进度条不动，axios `onUploadProgress` 要求 `e.total` 存在才触发，快传场景下 total 常为 undefined | ✅ |
 | `ea50bce` | fix | 上传成功进度条卡在 5%，status 与 progress 同 tick 变更时 NProgress 只捕获一个字段，组件层从 status 派生 percentage + store 用 Object.assign 批量更新 | ✅ |
@@ -33,4 +38,4 @@
 
 ---
 
-**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983`
+**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983` · `v0.0.3` → `0e74c2b`
