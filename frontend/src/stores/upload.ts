@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { filesApi } from '@/api/files'
+import { useFilesStore } from './files'
 
 export interface UploadTask {
   id: string
@@ -15,6 +16,17 @@ export const useUploadStore = defineStore('upload', () => {
   const queue = ref<UploadTask[]>([])
   const MAX_CONCURRENT = 3
   const _active = ref(0)
+  let _refreshTimer: ReturnType<typeof setTimeout> | null = null
+
+  /** 延迟刷新 files 列表，多文件并发时合并成一次请求 */
+  function _scheduleRefresh() {
+    if (_refreshTimer) return
+    _refreshTimer = setTimeout(() => {
+      _refreshTimer = null
+      const files = useFilesStore()
+      files.list()
+    }, 400)
+  }
 
   function enqueue(file: File) {
     const task: UploadTask = {
@@ -46,9 +58,11 @@ export const useUploadStore = defineStore('upload', () => {
         } else if (item.status === 'duplicate') {
           task.status = 'duplicate'
           task.progress = 100
+          _scheduleRefresh()
         } else if (item.status === 'created') {
           task.status = 'done'
           task.progress = 100
+          _scheduleRefresh()
         } else {
           task.status = 'error'
           task.error = item.error || '上传失败'
