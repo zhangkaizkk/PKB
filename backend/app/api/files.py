@@ -212,7 +212,14 @@ def update_file(
     doc = svc.get_by_public_id(public_id, current.id)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "文件不存在")
-    doc = svc.update(doc, title=payload.title, original_name=payload.original_name)
+
+    # 如果只给了 original_name 没给 title，自动从文件名派生 title（去掉扩展名）
+    title = payload.title
+    if title is None and payload.original_name is not None:
+        from app.utils.files import make_title_from_filename
+        title = make_title_from_filename(payload.original_name)
+
+    doc = svc.update(doc, title=title, original_name=payload.original_name)
     return _enrich(doc)
 
 
