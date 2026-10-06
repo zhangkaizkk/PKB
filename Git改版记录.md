@@ -26,6 +26,7 @@
 | `9945787` | fix | 上传成功后文件列表不刷新，upload store 与 files store 无联动，加 400ms debounce 触发 list | ✅ |
 | `c4302b8` | fix | 上传进度条不动，axios `onUploadProgress` 要求 `e.total` 存在才触发，快传场景下 total 常为 undefined | ✅ |
 | `ea50bce` | fix | 上传成功进度条卡在 5%，status 与 progress 同 tick 变更时 NProgress 只捕获一个字段，组件层从 status 派生 percentage + store 用 Object.assign 批量更新 | ✅ |
+| `1397881` | fix | 进度条/状态持续不更新（终极修复）— ref<[]> push 的 plain object 属性变更不触发 Pinia computed，改为 reactive<[]> + 直接修改属性 | ✅ |
 
 ---
 
