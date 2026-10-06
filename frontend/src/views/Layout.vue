@@ -149,6 +149,6 @@ onMounted(async () => {
 .tags-title { font-size: 12px; color: #888; margin-bottom: 8px; }
 .tags-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .top-bar { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 60px; }
-.top-left { width: 420px; }
+.top-left { display: flex; align-items: center; }
 .main-content { padding: 20px; overflow: auto; }
 </style>
