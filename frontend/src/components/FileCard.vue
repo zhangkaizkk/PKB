@@ -40,8 +40,12 @@ function onPreview() {
   emit('openPreview', props.item)
 }
 
-function onDownload() {
-  window.open(props.item.download_url, '_blank')
+async function onDownload() {
+  try {
+    await filesApi.download(props.item.public_id, props.item.original_name)
+  } catch (err: any) {
+    message.error(err?.response?.data?.detail || '下载失败')
+  }
 }
 
 async function onRename() {

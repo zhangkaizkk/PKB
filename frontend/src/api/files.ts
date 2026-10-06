@@ -48,4 +48,21 @@ export const filesApi = {
   updateTags(publicId: string, data: TagUpdateRequest) {
     return http.put<FileItem>(`/files/${publicId}/tags`, data)
   },
+
+  /** 带认证下载文件 — 返回 Blob，调用方负责触发浏览器下载 */
+  async download(publicId: string, originalName: string) {
+    const res = await http.get(`/files/${publicId}/download`, {
+      responseType: 'blob',
+    })
+    const blob = res.data as Blob
+    // Content-Disposition 里可能有后端指定的文件名，但我们用前端已知的 originalName 更可靠
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = originalName || `file-${publicId}`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 2000)
+  },
 }
