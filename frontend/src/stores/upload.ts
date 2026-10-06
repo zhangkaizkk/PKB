@@ -44,12 +44,15 @@ export const useUploadStore = defineStore('upload', () => {
     if (_active.value >= MAX_CONCURRENT) return
     _active.value++
     task.status = 'uploading'
+    task.progress = 5  // 起步值：避免快传场景下进度条一直停 0
 
     const form = new FormData()
     form.append('files', file)
 
     filesApi
-      .upload(form, (p) => (task.progress = p))
+      .upload(form, (p) => {
+        if (p > task.progress) task.progress = p  // 单调递增，避免 then() 里的 100 被后续事件覆盖
+      })
       .then((res) => {
         const item = res.data.items[0]
         if (!item) {

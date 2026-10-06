@@ -18,8 +18,13 @@ export const filesApi = {
     return http.post<UploadResponse>('/files/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: (e) => {
-        if (onProgress && e.total) {
+        if (!onProgress) return
+        if (e.total && e.total > 0) {
           onProgress(Math.round((e.loaded / e.total) * 100))
+        } else if (e.loaded > 0) {
+          // e.total 缺失时，用已上传字节数做一个粗略进度（0~99，留 100 给 then()）
+          // 避免直接跳到 100，让 then() 里的 final 赋值驱动完成态切换
+          onProgress(Math.min(99, Math.round((e.loaded / 1024 / 1024) * 2)))
         }
       },
     })
