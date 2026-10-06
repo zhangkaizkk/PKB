@@ -29,6 +29,7 @@
 | `1397881` | fix | 进度条/状态持续不更新（终极修复）— ref<[]> push 的 plain object 属性变更不触发 Pinia computed，改为 reactive<[]> + 直接修改属性 | ✅ |
 | `7d7f510` | fix | 搜索栏消失，Layout.vue 的 NInput 漏从 naive-ui import | ✅ |
 | `4ef43bc` | feat | 搜索栏后加搜索按钮 | ✅ |
+| `940c9d9` | fix | 搜索按钮被挤到搜索栏下，.top-left 固定 width:420px 太窄，改 flex 自适应 | ✅ |
 
 ---
 
