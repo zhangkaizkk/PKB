@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 ExtractStatus = Literal["pending", "done", "failed", "skipped"]
+OcrStatus = Literal["pending", "processing", "done", "failed", "skipped"]
 
 
 class Document(Base):
@@ -31,6 +32,15 @@ class Document(Base):
         nullable=False,
     )
     extract_error: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+
+    ocr_status: Mapped[OcrStatus] = mapped_column(
+        Enum("pending", "processing", "done", "failed", "skipped", name="ocr_status"),
+        default="skipped",
+        nullable=False,
+    )
+    ocr_error: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+
+    indexed_at: Mapped[datetime | None] = mapped_column(DateTime(6), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(6), server_default=func.now(6))
     updated_at: Mapped[datetime] = mapped_column(DateTime(6), server_default=func.now(6), onupdate=func.now(6))

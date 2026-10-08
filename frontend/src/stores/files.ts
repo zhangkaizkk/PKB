@@ -11,9 +11,10 @@ export const useFilesStore = defineStore('files', () => {
   const loading = ref(false)
   const currentPreview = ref<FileItem | null>(null)
 
-  async function list(q?: string, tagId?: number, status: 'active' | 'trashed' = 'active', p = 1) {
+  async function list(q?: string, tagId?: number, status: 'active' | 'trashed' = 'active', p = 1, size?: number) {
     loading.value = true
     page.value = p
+    if (size !== undefined) pageSize.value = size
     try {
       const res = await filesApi.list({
         q, tag_id: tagId, status, page: p, page_size: pageSize.value,

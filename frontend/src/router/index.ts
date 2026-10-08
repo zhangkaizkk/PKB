@@ -17,6 +17,7 @@ const router = createRouter({
       children: [
         { path: '', name: 'home', component: () => import('@/views/HomeView.vue') },
         { path: 'trash', name: 'trash', component: () => import('@/views/TrashView.vue') },
+        { path: 'chat', name: 'chat', component: () => import('@/views/ChatView.vue') },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },

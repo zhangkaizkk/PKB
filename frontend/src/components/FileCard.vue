@@ -85,6 +85,16 @@ async function onPurge() {
     },
   })
 }
+function ocrTag(item: FileItem) {
+  const map: Record<string, { type: 'default' | 'success' | 'warning' | 'error' | 'info'; label: string }> = {
+    done: { type: 'success', label: 'OCR 完成' },
+    processing: { type: 'info', label: 'OCR 中' },
+    failed: { type: 'error', label: 'OCR 失败' },
+    pending: { type: 'warning', label: '待 OCR' },
+    skipped: { type: 'default', label: '' },
+  }
+  return map[item.ocr_status] || map.skipped
+}
 </script>
 
 <template>
@@ -93,7 +103,23 @@ async function onPurge() {
       <n-icon :component="iconFor(item.mime_type)" :size="28" />
     </div>
     <div class="fc-info">
-      <div class="fc-name" :title="item.original_name">{{ item.title }}</div>
+      <div class="fc-name" :title="item.original_name">
+        {{ item.title }}
+        <n-tag
+          v-if="ocrTag(item).label"
+          :type="ocrTag(item).type"
+          size="tiny"
+          round
+          style="margin-left: 6px; vertical-align: middle"
+        >{{ ocrTag(item).label }}</n-tag>
+        <n-tag
+          v-if="item.indexed_at"
+          type="success"
+          size="tiny"
+          round
+          style="margin-left: 4px; vertical-align: middle"
+        >已索引</n-tag>
+      </div>
       <div class="fc-meta">
         {{ fmtSize(item.size_bytes) }} · {{ fmtDate(item.updated_at) }}
       </div>
@@ -115,26 +141,43 @@ async function onPurge() {
 <style scoped>
 .file-card {
   display: grid;
-  grid-template-columns: 52px 1fr auto;
+  grid-template-columns: 44px 1fr auto;
   gap: 14px;
   align-items: center;
-  padding: 14px 16px;
-  border: 1px solid #eee;
-  border-radius: 10px;
-  background: #fff;
-  transition: all .15s;
+  padding: 12px 16px;
+  border: 1px solid var(--cyb-border);
+  border-radius: var(--cyb-radius);
+  background: var(--cyb-bg-2);
+  transition: border-color var(--cyb-transition), box-shadow var(--cyb-transition);
 }
-.file-card:hover { border-color: #18a058; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
+.file-card:hover {
+  border-color: var(--cyb-neon);
+  box-shadow: 0 0 0 1px var(--cyb-neon-dim);
+}
 .fc-icon {
-  width: 48px; height: 48px;
+  width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center;
-  background: #f0fdf4;
-  border-radius: 10px;
-  color: #18a058;
+  background: var(--cyb-neon-dim);
+  border-radius: var(--cyb-radius-sm);
+  color: var(--cyb-neon);
 }
 .fc-info { overflow: hidden; }
-.fc-name { font-weight: 600; font-size: 14px; color: #222; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fc-meta { color: #999; font-size: 12px; margin-top: 2px; }
+.fc-name {
+  font-weight: 500; font-size: 14px; color: var(--cyb-text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fc-meta {
+  color: var(--cyb-text-faint); font-size: 12px; margin-top: 2px;
+  font-family: var(--cyb-mono);
+}
 .fc-tags { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
-.fc-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+.fc-actions { display: flex; gap: 2px; flex-wrap: wrap; }
+.fc-actions :deep(.n-button--quaternary) {
+  color: var(--cyb-text-dim) !important;
+  border-radius: var(--cyb-radius-sm) !important;
+}
+.fc-actions :deep(.n-button--quaternary:hover) {
+  color: var(--cyb-neon) !important;
+  background: var(--cyb-neon-dim) !important;
+}
 </style>

@@ -21,5 +21,7 @@ onMounted(() => {
     :page="files.page"
     :page-size="files.pageSize"
     @refresh="() => files.list(undefined, undefined, 'active', files.page)"
+    @page-change="(p: number) => files.list(undefined, undefined, 'active', p)"
+    @page-size-change="(s: number) => files.list(undefined, undefined, 'active', 1, s)"
   />
 </template>

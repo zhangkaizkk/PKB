@@ -17,6 +17,7 @@ const emit = defineEmits<{
   'refresh:tags': []
   openPreview: [item: FileItem]
   pageChange: [p: number]
+  pageSizeChange: [size: number]
 }>()
 
 const files = useFilesStore()
@@ -53,7 +54,7 @@ function onPreview(item: FileItem) {
         show-size-picker
         :page-sizes="[10, 20, 50]"
         @update:page="(p) => emit('pageChange', p)"
-        @update:page-size="() => emit('pageChange', 1)"
+        @update:page-size="(s) => emit('pageSizeChange', s as number)"
       />
     </div>
   </div>

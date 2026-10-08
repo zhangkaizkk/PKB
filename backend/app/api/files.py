@@ -1,8 +1,10 @@
-"""文件 API — 文档 5.2 节完整实现。"""
+"""文件 API — 文档 5.2 节完整实现 + OCR + RAG 后台任务。"""
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
@@ -24,7 +26,11 @@ from app.schemas.file import (
 )
 from app.services.extractor import extract_text_from_stored
 from app.services.file_service import FileService
+from app.services.ocr_service import needs_ocr, ocr_file
+from app.services.rag_service import index_document
 from app.services.storage import get_storage
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/files", tags=["files"])
 
@@ -44,7 +50,6 @@ def _enrich(doc: Document) -> FileResponse:
 
 def _bg_extract(doc_id: int) -> None:
     """后台文本抽取（同步函数，FastAPI BackgroundTasks 兼容）。"""
-    # 新建独立 Session（避免请求结束后原 session 关闭）
     from app.db.session import SessionLocal
     from app.services.file_service import FileService
 
@@ -63,6 +68,84 @@ def _bg_extract(doc_id: int) -> None:
             svc.save_extraction_result(doc_id, None, None)  # skipped
     finally:
         db.close()
+
+
+def _bg_ocr_and_index(doc_id: int) -> None:
+    """OCR + RAG 索引后台任务（同步包装 async）。"""
+    from app.db.session import SessionLocal
+    from app.models.document import DocumentText
+
+    db = SessionLocal()
+    try:
+        doc = db.get(Document, doc_id)
+        if not doc:
+            return
+
+        # ======= 阶段 1: OCR =======
+        if needs_ocr(doc.mime_type or "", doc.original_name or doc.title):
+            doc.ocr_status = "processing"
+            db.commit()
+
+            ocr_content, ocr_error = ocr_file(doc.stored_path)
+
+            if ocr_error:
+                doc.ocr_status = "failed"
+                doc.ocr_error = ocr_error
+                logger.warning("文档 %s OCR 失败: %s", doc.public_id, ocr_error)
+            elif ocr_content is not None:
+                doc.ocr_status = "done"
+
+                # 合并 OCR 内容到 document_texts
+                existing = db.get(DocumentText, doc_id)
+                if existing:
+                    # 已有抽取文本 → 在后面追加 OCR 内容
+                    if ocr_content and ocr_content not in existing.content:
+                        existing.content = existing.content + "\n\n[OCR 识别内容]\n" + ocr_content
+                else:
+                    # 没有抽取文本 → 直接用 OCR 内容
+                    if ocr_content:
+                        db.add(DocumentText(document_id=doc_id, content=ocr_content))
+
+                # 如果之前 extract_status 是 skipped 或空，现在标记为 done
+                if doc.extract_status in ("skipped", "pending"):
+                    doc.extract_status = "done"
+            else:
+                doc.ocr_status = "skipped"
+        else:
+            doc.ocr_status = "skipped"
+
+        db.commit()
+
+        # ======= 阶段 2: RAG 索引 =======
+        doc = db.get(Document, doc_id)  # 刷新
+        if doc and doc.text_content and doc.text_content.content.strip():
+            try:
+                # 用新的事件循环运行 async 索引（避免与 FastAPI 主 loop 冲突）
+                loop = asyncio.new_event_loop()
+                try:
+                    loop.run_until_complete(_do_index(doc))
+                finally:
+                    loop.close()
+                doc.indexed_at = datetime.utcnow()
+                db.commit()
+            except Exception as exc:  # noqa: BLE001
+                logger.error("文档 %s RAG 索引失败: %s", doc.public_id, exc)
+
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("后台 OCR/索引任务异常: %s", exc)
+    finally:
+        db.close()
+
+
+async def _do_index(doc: Document) -> None:
+    """异步索引包装。"""
+    if doc.text_content:
+        await index_document(
+            document_id=doc.id,
+            public_id=doc.public_id,
+            title=doc.title,
+            text_content=doc.text_content.content,
+        )
 
 
 # ============ 上传 ============
@@ -94,11 +177,35 @@ async def upload_files(
         else:
             doc: Document = res
             results.append(UploadItem(status="created", file=_enrich(doc)))
+            # 文本抽取
             background_tasks.add_task(_bg_extract, doc.id)
+            # OCR + RAG 索引（抽取完成后执行）
+            background_tasks.add_task(_bg_ocr_and_index, doc.id)
 
         await f.close()
 
     return UploadResponse(items=results)
+
+
+# ============ OCR 状态查询 ============
+
+@router.get("/{public_id}/ocr-status", response_model=dict)
+def get_ocr_status(
+    public_id: str,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> dict:
+    svc = FileService(db)
+    doc = svc.get_by_public_id(public_id, current.id)
+    if not doc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "文件不存在")
+
+    return {
+        "public_id": doc.public_id,
+        "ocr_status": doc.ocr_status,
+        "ocr_error": doc.ocr_error,
+        "indexed_at": doc.indexed_at.isoformat() if doc.indexed_at else None,
+    }
 
 
 # ============ 列表 ============
@@ -242,6 +349,34 @@ def update_tags(
     return _enrich(doc)
 
 
+# ============ 批量清空回收站（必须放在 /{public_id} 之前，避免被路径参数吞掉） ============
+
+@router.delete("/purge-all", status_code=200)
+def purge_all(
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> dict:
+    from app.models.document import Document
+    from app.services.rag_service import unindex_document
+
+    # 先收集所有待删的 doc_id，批量清向量
+    doc_ids = [
+        row[0]
+        for row in db.query(Document.id)
+        .where(Document.owner_id == current.id, Document.deleted_at.is_not(None))
+        .all()
+    ]
+    for doc_id in doc_ids:
+        try:
+            unindex_document(doc_id)
+        except Exception:  # noqa: BLE001
+            pass
+
+    svc = FileService(db)
+    count = svc.purge_all_trashed(current.id)
+    return {"purged_count": count}
+
+
 # ============ 软删除 ============
 
 @router.delete("/{public_id}", response_model=FileResponse)
@@ -282,8 +417,15 @@ def purge(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ) -> None:
+    from app.services.rag_service import unindex_document
+
     svc = FileService(db)
     doc = svc.get_by_public_id(public_id, current.id, include_trashed=True)
     if not doc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "文件不存在")
+    # 先从向量库移除
+    try:
+        unindex_document(doc.id)
+    except Exception:  # noqa: BLE001
+        pass
     svc.purge(doc)

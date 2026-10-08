@@ -50,6 +50,10 @@ export const filesApi = {
     return http.delete(`/files/${publicId}/purge`)
   },
 
+  purgeAll() {
+    return http.delete<{ purged_count: number }>('/files/purge-all')
+  },
+
   updateTags(publicId: string, data: TagUpdateRequest) {
     return http.put<FileItem>(`/files/${publicId}/tags`, data)
   },

@@ -36,6 +36,27 @@
 | `4ef43bc` | feat | 搜索栏后加搜索按钮 | ✅ |
 | `940c9d9` | fix | 搜索按钮被挤到搜索栏下，.top-left 固定 width:420px 太窄，改 flex 自适应 | ✅ |
 
+## v0.0.4
+
+| Hash | 类型 | 原因 | 状态 |
+|---|---|---|---|
+| — | feat | **OCR + RAG 扩展**：PaddleOCR 本地抽取图片/扫描 PDF 文本，OpenAI 兼容 Embedding API 向量化，ChromaDB 持久化，`text-embedding-v3` 批量上限修正为 10（原 16 触发 400 零向量占位） | ✅ |
+| — | feat | **知识库问答页**：新增 ChatView（侧边栏入口）、ChatWindow、ChatMessage、CitationCard 组件，支持模型信息、引用卡片、可折叠已索引文档列表 | ✅ |
+| — | feat | **相似度阈值过滤**：无意义查询最小 similarity ≈ 47.7%，加 `MIN_SIMILARITY = 0.5` 阈值过滤 ChromaDB 噪声分块，解决"实习经历"混入课程报告的问题 | ✅ |
+| — | fix | **零向量占位导致全库相似度 0%**：API Key 未配置时 Embedding 401 → 零向量占位 → 全局 distance=1.0；清空 ChromaDB 重新索引后修复 | ✅ |
+| — | feat | **回收站「全部删除」按钮**：后端 `DELETE /api/files/purge-all` 路由 + `FileService.purge_all_trashed`，前端 TrashView 红色 ghost 按钮 + Naive UI dialog.warning 二次确认 | ✅ |
+| — | fix | **分页翻页点击无反应**：FileList emit `pageChange` 但 HomeView/TrashView 都没监听 `@page-change` | ✅ |
+| — | fix | **每页条数下拉点击无反应**：`@update:page-size` 丢弃 NPagination 传出的新值，store.pageSize 永远不更新 → 受控组件重渲染时强制覆盖回 20；新增 `pageSizeChange` emit + store.list 接受 size 参数 | ✅ |
+
+## v0.0.5
+
+| Hash | 类型 | 原因 | 状态 |
+|---|---|---|---|
+| — | feat | **桌面快捷方式一键启动**：新增 `scripts/start-pkb.ps1`（PowerShell 主脚本）+ `start-pkb.bat`（极简 wrapper），自动检测 Docker → npm host build → docker compose → 健康检查 → 开浏览器；支持 `rebuild` 参数强制重建 | ✅ |
+| — | fix | **bat 编码导致中文命令被 GBK 拆碎**：Windows cmd 默认 GBK，UTF-8 bat 中文字符被拆成无效命令；改用 PowerShell 主脚本 + bat wrapper 两层架构解决 | ✅ |
+| — | fix | **npm 退出码被管道吞掉**：`npm run build *>&1 \| ForEach-Object` 管道的退出码是管道整体的而非 npm 的，导致编译成功却误判失败；改为直接调用 npm 不经过管道 | ✅ |
+| — | feat | **启动脚本智能跳过 Docker build**：检测镜像是否存在 + 比较 `frontend/src` vs `frontend/dist` 时间戳，日常启动 `docker compose up -d`（秒启动），仅首次或源码变更时才 `--build` | ✅ |
+
 ---
 
-**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983` · `v0.0.3` → `d427529`
+**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983` · `v0.0.3` → `d427529` · `v0.0.4` → `HEAD-1` · `v0.0.5` → `HEAD`

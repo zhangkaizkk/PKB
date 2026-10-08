@@ -250,6 +250,26 @@ class FileService:
         self.db.delete(doc)
         self.db.commit()
 
+    def purge_all_trashed(self, owner_id: int) -> int:
+        """彻底删除当前用户所有回收站文件，返回删除数量。"""
+        from app.models.document import Document
+
+        trashed = (
+            self.db.query(Document)
+            .where(Document.owner_id == owner_id, Document.deleted_at.is_not(None))
+            .all()
+        )
+        count = 0
+        for doc in trashed:
+            try:
+                self.storage.physical_delete(doc.stored_path)
+            except Exception:  # noqa: BLE001
+                pass
+            self.db.delete(doc)
+            count += 1
+        self.db.commit()
+        return count
+
     # ---------- 文本抽取回调 ----------
 
     def save_extraction_result(self, doc_id: int, content: str | None, error: str | None) -> None:

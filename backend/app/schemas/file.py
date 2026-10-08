@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict
 from app.schemas.tag import TagResponse
 
 ExtractStatus = Literal["pending", "done", "failed", "skipped"]
+OcrStatus = Literal["pending", "processing", "done", "failed", "skipped"]
 
 
 class FileResponse(BaseModel):
@@ -22,6 +23,9 @@ class FileResponse(BaseModel):
     sha256: str
     extract_status: ExtractStatus
     extract_error: str | None = None
+    ocr_status: OcrStatus = "skipped"
+    ocr_error: str | None = None
+    indexed_at: datetime | None = None
     tags: list[TagResponse] = []
     created_at: datetime
     updated_at: datetime

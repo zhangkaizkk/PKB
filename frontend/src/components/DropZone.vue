@@ -32,30 +32,39 @@ function onClick() { inputRef.value?.click() }
   >
     <input ref="inputRef" type="file" multiple hidden @change="(e) => handleFiles((e.target as HTMLInputElement).files)" />
     <div class="dz-inner" @click="onClick">
-      <div class="dz-icon">📤</div>
-      <div class="dz-text">拖拽文件到这里，或 <b>点击选择文件</b></div>
-      <div class="dz-hint">支持多文件，单个最大 2GB</div>
+      <div class="dz-icon">⇪</div>
+      <div class="dz-text">
+        <span class="dz-accent">拖拽文件</span> 到这里，或 <span class="dz-accent">点击选择</span>
+      </div>
+      <div class="dz-hint">// 支持多文件 · 单个最大 2GB</div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .drop-zone {
-  border: 2px dashed #ccc;
-  border-radius: 12px;
+  border: 1px dashed var(--cyb-border-strong);
+  border-radius: var(--cyb-radius);
   padding: 28px 16px;
   text-align: center;
-  background: #fafafa;
-  transition: all .2s;
+  background: var(--cyb-bg-2);
+  transition: border-color var(--cyb-transition), background var(--cyb-transition);
   margin-bottom: 16px;
 }
 .drop-zone.active {
-  border-color: #18a058;
-  background: #e8f7ee;
+  border-color: var(--cyb-neon);
+  background: var(--cyb-neon-dim);
+  box-shadow: var(--cyb-neon-glow);
 }
 .dz-inner { cursor: pointer; }
-.dz-icon { font-size: 36px; margin-bottom: 8px; }
-.dz-text { color: #333; font-size: 14px; }
-.dz-text b { color: #18a058; }
-.dz-hint { color: #999; font-size: 12px; margin-top: 4px; }
+.dz-icon {
+  font-family: var(--cyb-mono); font-size: 28px;
+  color: var(--cyb-neon); margin-bottom: 8px;
+}
+.dz-text { color: var(--cyb-text-dim); font-size: 14px; }
+.dz-accent { color: var(--cyb-neon); font-weight: 500; }
+.dz-hint {
+  color: var(--cyb-text-faint); font-size: 11px; margin-top: 6px;
+  font-family: var(--cyb-mono); letter-spacing: 1px;
+}
 </style>

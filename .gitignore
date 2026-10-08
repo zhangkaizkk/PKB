@@ -13,8 +13,8 @@ dist/
 .env
 .env.local
 
-# Data
-data/files/
+# Data — 所有运行时数据（ChromaDB 向量库、上传文件、临时文件）
+data/
 backend/data/
 
 # Backups
