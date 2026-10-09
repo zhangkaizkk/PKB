@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import mimetypes
 import uuid
 from typing import Iterable
 
@@ -18,6 +19,41 @@ from app.utils.hashing import compute_sha256_stream
 from ..core.config import settings
 from ..models.document import Document, DocumentTag, DocumentText, ExtractStatus
 from ..models.tag import Tag
+
+# 扩展名 → MIME 白名单（不依赖 python-magic，避免 Dockerfile 加系统依赖）
+_MIME_WHITELIST: dict[str, str] = {
+    ".pdf":  "application/pdf",
+    ".txt":  "text/plain",
+    ".md":   "text/markdown",
+    ".markdown": "text/markdown",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ".png":  "image/png",
+    ".jpg":  "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif":  "image/gif",
+    ".webp": "image/webp",
+    ".svg":  "image/svg+xml",
+}
+
+
+def _detect_mime(filename: str | None) -> str:
+    """服务端判定 MIME：扩展名白名单优先，其次 mimetypes.guess_type，最后 octet-stream。
+    不信任客户端上传时带的 content_type。"""
+    if not filename:
+        return "application/octet-stream"
+    safe = sanitize_filename(filename)
+    lower = safe.lower()
+    # 白名单
+    for ext, mime in _MIME_WHITELIST.items():
+        if lower.endswith(ext):
+            return mime
+    # 标准库兜底
+    guessed, _ = mimetypes.guess_type(safe)
+    if guessed:
+        return guessed
+    return "application/octet-stream"
 
 
 class FileService:
@@ -79,7 +115,7 @@ class FileService:
             original_name=file.filename or "untitled",
             title=make_title_from_filename(file.filename or "untitled"),
             stored_path=stored_path,
-            mime_type=file.content_type or "application/octet-stream",
+            mime_type=_detect_mime(file.filename),
             size_bytes=size,
             sha256=sha_hash,
             extract_status="pending",
