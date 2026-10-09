@@ -70,29 +70,39 @@ class FileService:
 
         返回 Document 对象（新建）或 {"duplicate": True, "document": Document}（重复）。
         """
-        # —— 1. tmp 写入 + SHA-256 流式计算 ——
+        # —— 1. tmp 写入 + SHA-256 流式计算 + 边写边校验大小 ——
         tmp_path = self.storage.new_tmp_path()
         sha_hash = ""
         size = 0
+        truncated = False
         try:
             with tmp_path.open("wb") as out:
                 h = __import__("hashlib").sha256()
+                limit = settings.max_upload_size
                 while True:
                     chunk = file.file.read(1 << 20)
                     if not chunk:
                         break
+                    # 边写边校验 — 超限时立即中断，不占满磁盘
+                    if size + len(chunk) > limit:
+                        truncated = True
+                        break
                     out.write(chunk)
                     h.update(chunk)
                     size += len(chunk)
+
+            if truncated:
+                self.storage.remove_tmp(tmp_path)
+                raise HTTPException(
+                    status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    f"文件超过上传上限（{limit / 1024 / 1024 / 1024:.1f} GiB）",
+                )
             sha_hash = h.hexdigest()
+        except HTTPException:
+            raise
         except Exception as exc:  # noqa: BLE001
             self.storage.remove_tmp(tmp_path)
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"文件读取失败: {exc}") from exc
-
-        # 大小限制校验（实际大小 vs 配置）
-        if size > settings.max_upload_size:
-            self.storage.remove_tmp(tmp_path)
-            raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "文件超过上传上限")
 
         # —— 2. SHA-256 去重 ——
         dup = self._find_active_by_sha(sha_hash)
