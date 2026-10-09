@@ -12,7 +12,7 @@ services:
       - mysql_data:/var/lib/mysql
       - ./deploy/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
@@ -73,7 +73,7 @@ services:
       - ./data/files:/app/data/files
       - ./data/chroma:/app/data/chroma
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"   # 如需局域网访问 /docs，改为 "8000:8000"
     command: >
       sh -c "alembic upgrade head &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000"
