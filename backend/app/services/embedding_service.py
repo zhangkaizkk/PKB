@@ -56,14 +56,11 @@ class OpenAiCompatEmbeddingService:
                 batch_emb = [item["embedding"] for item in data["data"]]
                 all_embeddings.extend(batch_emb)
             except OpenAiCompatError as exc:
-                logger.error("Embedding API 调用失败: %s", exc)
-                # 返回零向量占位（维度正确），让索引不中断
-                zero_vector = [0.0] * self.dim
-                all_embeddings.extend([zero_vector] * len(batch))
+                logger.error("Embedding API 调用失败 (batch %d/%d): %s", i // self.batch_size + 1, len(texts) // self.batch_size + 1, exc)
+                raise  # 失败直接抛，让上层决定如何处理（保持 failed 状态，不写 indexed_at）
             except Exception as exc:  # noqa: BLE001
-                logger.exception("Embedding 未知错误: %s", exc)
-                zero_vector = [0.0] * self.dim
-                all_embeddings.extend([zero_vector] * len(batch))
+                logger.exception("Embedding 未知错误 (batch %d/%d): %s", i // self.batch_size + 1, len(texts) // self.batch_size + 1, exc)
+                raise
 
         return all_embeddings
 

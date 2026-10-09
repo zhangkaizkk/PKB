@@ -57,6 +57,21 @@
 | — | fix | **npm 退出码被管道吞掉**：`npm run build *>&1 \| ForEach-Object` 管道的退出码是管道整体的而非 npm 的，导致编译成功却误判失败；改为直接调用 npm 不经过管道 | ✅ |
 | — | feat | **启动脚本智能跳过 Docker build**：检测镜像是否存在 + 比较 `frontend/src` vs `frontend/dist` 时间戳，日常启动 `docker compose up -d`（秒启动），仅首次或源码变更时才 `--build` | ✅ |
 
+## v0.0.6
+
+| Hash | 类型 | 原因 | 状态 |
+|---|---|---|---|
+| — | fix | **[P0-1] 删除文件向量未清理（静默 await 漏用）**：`unindex_document` 是 `async def` 但 `purge` / `purge_all` 两个同步路由里直接调用没 `await`，Python 创建的协程对象永远不会执行 → ChromaDB 孤儿向量堆积且仍被检索到；改为同步函数 | ✅ |
+| — | fix | **[P0-2] Embedding 失败静默降级零向量**：任何异常（401/限流/格式错误）都塞零向量继续，界面显示"已索引"实际 similarity=0 被阈值过滤；改为失败直接 `raise`，让文档保持 failed 状态 | ✅ |
+| — | fix | **[P0-3] 每次问答新建 DB engine 不 dispose**：`get_indexed_documents_summary()` 里 `create_engine(os.environ["DATABASE_URL"])` 绕过 SessionLocal，连接靠 GC 回收，高并发顶到 max_connections；改为复用 `SessionLocal` | ✅ |
+| — | fix | **[P0-4] datetime.utcnow() 弃用 + 时区混用**：3 处 `utcnow()`（files.py/rag.py）→ `datetime.now(timezone.utc).replace(tzinfo=None)`；`deleted_at` 已是正确写法 | ✅ |
+| — | fix | **[P0-5] 前端 Dockerfile 干净 clone 必然失败**：原 Dockerfile 直接 `COPY dist`，但 .gitignore 排除 dist/；改为多阶段构建 `node:20-alpine → nginx:alpine`，`npm ci` + `npm run build` 全在镜像内完成 | ✅ |
+| — | fix | **[P1-6] 默认凭据 fail-fast**：`SECRET_KEY` 仍为 `"change-me-to-a-long-random-string"` 时启动直接 `sys.exit(1)`；`ADMIN_PASSWORD` 默认值给 WARN | ✅ |
+| — | fix | **[P1-7] /rag/stats + /rag/config 漏鉴权**：两个接口无 `Depends(get_current_user)`，任何人能读模型名/base_url/索引规模；补鉴权后无 token → 401 | ✅ |
+| — | fix | **[P1-8] 预览接口补 nosniff**：`FileResponse` 加 `headers={"X-Content-Type-Options": "nosniff"}`，防止 MIME sniffing 同源脚本注入 | ✅ |
+| — | feat | **[P1-9] ChromaDB owner 维度隔离**：`index_document` 新增 `owner_id` 参数写入 metadata，`answer_question` 用 `$or` 过滤（兼容旧分块无 owner_id 的情况），多账号不会互读向量 | ✅ |
+| — | fix | **.env.example 移除真实 API Key**：LLM_API_KEY / EMBEDDING_API_KEY 从真实值改成 `sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` 占位符；提醒用户吊销泄露的 Key | ✅ |
+
 ---
 
-**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983` · `v0.0.3` → `d427529` · `v0.0.4` → `HEAD-1` · `v0.0.5` → `HEAD`
+**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983` · `v0.0.3` → `d427529` · `v0.0.4` → `HEAD-2` · `v0.0.5` → `HEAD-1` · `v0.0.6` → `HEAD`

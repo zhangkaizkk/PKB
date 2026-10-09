@@ -63,3 +63,25 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+# Fail-fast：禁止使用默认凭据启动（生产环境必须覆盖）
+_default_secret = "change-me-to-a-long-random-string"
+_default_admin = "admin123"
+
+if settings.secret_key == _default_secret:
+    import sys
+    print(
+        "[FATAL] 安全风险: SECRET_KEY 仍是默认值 '%s'\n"
+        "  必须在 .env 中设置一个随机字符串，否则 JWT 可被伪造。" % _default_secret,
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+if settings.admin_password == _default_admin:
+    import sys
+    print(
+        "[WARN] 安全提示: ADMIN_PASSWORD 仍是默认值 '%s'\n"
+        "  建议在 .env 中修改默认密码。" % _default_admin,
+        file=sys.stderr,
+    )

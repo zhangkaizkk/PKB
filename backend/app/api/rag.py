@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import desc, select
@@ -46,6 +46,7 @@ async def ask(
         top_k_retrieve=payload.top_k_retrieve,
         top_k_rerank=payload.top_k_rerank,
         local_only=payload.local_only,
+        owner_id=current.id,
     )
 
     # 写入问答历史
@@ -126,9 +127,10 @@ async def reindex_all(
             public_id=doc.public_id,
             title=doc.title,
             text_content=doc.text_content.content,
+            owner_id=current.id,
         )
         if chunk_count > 0:
-            doc.indexed_at = datetime.utcnow()
+            doc.indexed_at = datetime.now(timezone.utc).replace(tzinfo=None)
             total_chunks += chunk_count
             indexed_count += 1
 
@@ -160,8 +162,9 @@ async def reindex_one(
         public_id=doc.public_id,
         title=doc.title,
         text_content=doc.text_content.content,
+        owner_id=current.id,
     )
-    doc.indexed_at = datetime.utcnow()
+    doc.indexed_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()
 
     return RagReindexResponse(
@@ -172,7 +175,9 @@ async def reindex_one(
 # ============ 索引统计 ============
 
 @router.get("/stats", response_model=RagStatsResponse)
-def get_stats() -> RagStatsResponse:
+def get_stats(
+    current: User = Depends(get_current_user),
+) -> RagStatsResponse:
     stats = count_collected()
     return RagStatsResponse(**stats)
 
@@ -219,7 +224,9 @@ def get_indexed_documents(
 # ============ 配置（脱敏）============
 
 @router.get("/config", response_model=RagConfigResponse)
-def get_config() -> RagConfigResponse:
+def get_config(
+    current: User = Depends(get_current_user),
+) -> RagConfigResponse:
     return RagConfigResponse(
         chat_model=settings.llm_chat_model,
         chat_base_url=settings.llm_base_url,

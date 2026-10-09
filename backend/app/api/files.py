@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
@@ -126,7 +126,7 @@ def _bg_ocr_and_index(doc_id: int) -> None:
                     loop.run_until_complete(_do_index(doc))
                 finally:
                     loop.close()
-                doc.indexed_at = datetime.utcnow()
+                doc.indexed_at = datetime.now(timezone.utc).replace(tzinfo=None)
                 db.commit()
             except Exception as exc:  # noqa: BLE001
                 logger.error("文档 %s RAG 索引失败: %s", doc.public_id, exc)
@@ -145,6 +145,7 @@ async def _do_index(doc: Document) -> None:
             public_id=doc.public_id,
             title=doc.title,
             text_content=doc.text_content.content,
+            owner_id=doc.owner_id,
         )
 
 
@@ -266,7 +267,11 @@ def preview_file(
         abs_path = get_storage().finalize_path(doc.stored_path)
         if not abs_path.exists():
             raise HTTPException(status.HTTP_404_NOT_FOUND, "文件不在磁盘")
-        return StarletteFileResponse(path=str(abs_path), media_type=mime)
+        return StarletteFileResponse(
+            path=str(abs_path),
+            media_type=mime,
+            headers={"X-Content-Type-Options": "nosniff"},
+        )
 
     # TXT / MD → 返回 JSON content
     if ext in _PREVIEW_TEXT_EXTS:

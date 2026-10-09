@@ -26,6 +26,7 @@ async def index_document(
     public_id: str,
     title: str,
     text_content: str,
+    owner_id: int | None = None,
 ) -> int:
     """将一个文档的文本内容分块、向量化、存入 ChromaDB。
 
@@ -52,12 +53,15 @@ async def index_document(
     metadatas = []
     ids = []
     for i, chunk in enumerate(chunks):
-        metadatas.append({
+        meta = {
             "document_id": document_id,
             "public_id": public_id,
             "title": title,
             "chunk_index": i,
-        })
+        }
+        if owner_id is not None:
+            meta["owner_id"] = owner_id
+        metadatas.append(meta)
         ids.append(f"doc_{document_id}_chunk_{i}")
 
     # 4. 写入 ChromaDB（先删旧的，避免重复）
@@ -77,8 +81,8 @@ async def index_document(
     return len(chunks)
 
 
-async def unindex_document(document_id: int) -> None:
-    """从 ChromaDB 移除某个文档的所有分块。"""
+def unindex_document(document_id: int) -> None:
+    """从 ChromaDB 移除某个文档的所有分块（同步函数，供同步路由直接调用）。"""
     delete_document_chunks(document_id)
 
 
@@ -89,6 +93,7 @@ async def answer_question(
     top_k_retrieve: int | None = None,
     top_k_rerank: int | None = None,
     local_only: bool | None = None,
+    owner_id: int | None = None,
 ) -> dict:
     """完整 RAG 问答流程。"""
     import time
@@ -105,11 +110,23 @@ async def answer_question(
     embed_svc = get_embedding_service()
     query_embedding = await embed_svc.embed_query(query)
 
-    # 2. 向量检索
+    # 2. 构造 Chroma where 过滤 — 按 owner_id 隔离（如果已建立隔离）
+    # 已有分块可能没有 owner_id（旧数据），用 $or 兼容
+    where_filter: dict | None = None
+    if owner_id is not None:
+        where_filter = {
+            "$or": [
+                {"owner_id": owner_id},
+                {"owner_id": {"$exists": False}},  # 兼容旧分块
+            ]
+        }
+
+    # 3. 向量检索
     try:
         results = query_similar(
             query_embedding=query_embedding,
             top_k=top_k_retrieve,
+            where_filter=where_filter,
         )
     except Exception as exc:  # noqa: BLE001
         logger.error("向量检索失败: %s", exc)

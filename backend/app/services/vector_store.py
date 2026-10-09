@@ -167,31 +167,28 @@ def get_indexed_documents_summary() -> str:
     """
     返回当前活跃的已索引文档列表（纯文本，注入 LLM prompt）。
     格式: "1. 个人简历 (3 chunks, 索引于 2026/10/08 08:49)"
-    如果 MySQL 连接失败或无活跃文档，返回空字符串。
+    复用 SessionLocal，不新建 engine。
     """
-    import os
-    from datetime import datetime
+    from datetime import datetime, timezone
 
+    from app.db.session import SessionLocal
+    from app.models.document import Document
+
+    db = SessionLocal()
     try:
-        from sqlalchemy import create_engine, text
-        db_url = os.environ.get("DATABASE_URL", "")
-        if not db_url:
-            return ""
-        engine = create_engine(db_url)
-        with engine.connect() as conn:
-            rows = conn.execute(
-                text("""
-                    SELECT d.id, d.title, d.original_name, d.indexed_at
-                    FROM documents d
-                    WHERE d.deleted_at IS NULL AND d.indexed_at IS NOT NULL
-                    ORDER BY d.indexed_at DESC
-                    LIMIT 20
-                """)
-            ).fetchall()
+        docs = (
+            db.query(Document.id, Document.title, Document.original_name, Document.indexed_at)
+            .filter(Document.deleted_at.is_(None), Document.indexed_at.isnot(None))
+            .order_by(Document.indexed_at.desc())
+            .limit(20)
+            .all()
+        )
     except Exception:  # noqa: BLE001
         return ""
+    finally:
+        db.close()
 
-    if not rows:
+    if not docs:
         return ""
 
     # 查每个文档的 chunk_count（从 ChromaDB）
@@ -201,12 +198,15 @@ def get_indexed_documents_summary() -> str:
         counts = {}
 
     lines = []
-    for i, row in enumerate(rows, 1):
-        title = row[1] or row[2] or "未命名"
-        indexed_at: datetime | None = row[3]
-        did = row[0]
+    for i, row in enumerate(docs, 1):
+        did, title, original_name, indexed_at = row
+        display_title = title or original_name or "未命名"
         chunk_count = counts.get(did, 0)
-        time_str = indexed_at.strftime("%Y/%m/%d %H:%M") if indexed_at else "-"
-        lines.append(f"{i}. {title} ({chunk_count} 个分块, 索引于 {time_str})")
+        if indexed_at is not None:
+            # 数据库返回的是 naive UTC（或 MySQL 的 +08:00 时间），直接 strftime
+            time_str = indexed_at.strftime("%Y/%m/%d %H:%M")
+        else:
+            time_str = "-"
+        lines.append(f"{i}. {display_title} ({chunk_count} 个分块, 索引于 {time_str})")
 
     return "\n".join(lines)
