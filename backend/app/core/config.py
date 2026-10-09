@@ -55,11 +55,8 @@ class Settings(BaseSettings):
     embedding_timeout_seconds: int = 60
     embedding_max_retries: int = 3
 
-    # --- 重排模式：none | llm | cloud_api ---
+    # --- 重排模式：none（不重排）| llm（用 Chat API 重排）---
     rerank_mode: str = "none"
-    rerank_cloud_base_url: str = ""
-    rerank_cloud_api_key: str = ""
-    rerank_cloud_model: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

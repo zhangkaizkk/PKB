@@ -109,5 +109,4 @@ def get_reranker(rerank_mode: str, chat_client=None) -> Reranker:
     """根据配置创建重排器。"""
     if rerank_mode == "llm" and chat_client is not None:
         return LlmReranker(chat_client)
-    # cloud_api 模式暂未实现
     return NoReranker()
