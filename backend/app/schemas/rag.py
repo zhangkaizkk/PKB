@@ -63,6 +63,7 @@ class RagConfigResponse(BaseModel):
 
 class RagReindexResponse(BaseModel):
     message: str
+    task_id: str | None = None   # 后台任务模式：POST /reindex 返回，GET /reindex/status 查进度
 
 
 class RagIndexedDocument(BaseModel):

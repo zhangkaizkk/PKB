@@ -3,15 +3,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
+import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.deps import get_current_user
-from app.db.session import get_db
+from app.db.session import SessionLocal, get_db
 from app.models.document import Document
 from app.models.qa_history import QaHistory
 from app.models.user import User
@@ -31,6 +33,96 @@ from app.services.vector_store import count_collected, get_chunk_counts
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/rag", tags=["rag"])
+
+# ==================== 后台重索引任务状态（进程内字典，单 worker 足够）====================
+# task_id → {running, total, done, failed, failed_details, message}
+_reindex_tasks: dict[str, dict] = {}
+_reindex_lock = threading.Lock()
+
+
+def _reindex_bg(task_id: str, owner_id: int) -> None:
+    """后台重索引 — 在线程池线程里用 asyncio.run。"""
+    with _reindex_lock:
+        _reindex_tasks[task_id] = {
+            "running": True, "total": 0, "done": 0, "failed": 0,
+            "failed_details": [], "message": "启动中",
+        }
+
+    db = SessionLocal()
+    try:
+        stmt = select(Document).where(
+            Document.owner_id == owner_id,
+            Document.extract_status == "done",
+            Document.deleted_at.is_(None),
+        )
+        docs = db.scalars(stmt).all()
+
+        with _reindex_lock:
+            _reindex_tasks[task_id]["total"] = len(docs)
+            _reindex_tasks[task_id]["message"] = f"开始处理 {len(docs)} 个文档"
+
+        total_chunks = 0
+        indexed_count = 0
+        failed_count = 0
+        errors: list[str] = []
+
+        for doc in docs:
+            if not doc.text_content:
+                with _reindex_lock:
+                    _reindex_tasks[task_id]["done"] += 1
+                continue
+            try:
+                chunk_count = asyncio.run(
+                    index_document(
+                        document_id=doc.id,
+                        public_id=doc.public_id,
+                        title=doc.title,
+                        text_content=doc.text_content.content,
+                        owner_id=owner_id,
+                    )
+                )
+            except Exception as exc:  # noqa: BLE001
+                failed_count += 1
+                errors.append(f"{doc.title}: {exc}")
+                logger.error("文档 %s 索引失败: %s", doc.public_id, exc)
+                with _reindex_lock:
+                    _reindex_tasks[task_id]["failed"] += 1
+                    _reindex_tasks[task_id]["failed_details"].append(f"{doc.title}: {exc}")
+                    _reindex_tasks[task_id]["done"] += 1
+                continue
+
+            if chunk_count > 0:
+                doc.indexed_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                total_chunks += chunk_count
+                indexed_count += 1
+
+            with _reindex_lock:
+                _reindex_tasks[task_id]["done"] += 1
+                _reindex_tasks[task_id]["message"] = (
+                    f"处理中 {_reindex_tasks[task_id]['done']}/{len(docs)}"
+                )
+
+        db.commit()
+
+        msg = f"重建完成，{indexed_count} 个文档，{total_chunks} 个分块已索引"
+        if failed_count:
+            msg += f"；{failed_count} 个失败"
+
+        with _reindex_lock:
+            _reindex_tasks[task_id].update({
+                "running": False,
+                "message": msg,
+            })
+
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("后台重索引异常: %s", exc)
+        with _reindex_lock:
+            _reindex_tasks[task_id].update({
+                "running": False,
+                "message": f"任务异常终止: {exc}",
+            })
+    finally:
+        db.close()
 
 
 # ============ 问答 ============
@@ -103,56 +195,43 @@ def get_history(
 
 # ============ 重建索引 ============
 
-@router.post("/reindex", response_model=RagReindexResponse)
+@router.post("/reindex", status_code=status.HTTP_202_ACCEPTED)
 async def reindex_all(
-    db: Session = Depends(get_db),
+    background_tasks: BackgroundTasks,
     current: User = Depends(get_current_user),
-) -> RagReindexResponse:
-    """重建当前用户所有文档的 RAG 索引（逐篇容错，一篇失败不影响整批）。"""
-    stmt = select(Document).where(
-        Document.owner_id == current.id,
-        Document.extract_status == "done",
-        Document.deleted_at.is_(None),
-    )
-    docs = db.scalars(stmt).all()
+) -> dict:
+    """重建当前用户所有文档的 RAG 索引（后台执行，立即返回 task_id）。"""
+    task_id = uuid.uuid4().hex
+    background_tasks.add_task(_reindex_bg, task_id, current.id)
+    return {
+        "task_id": task_id,
+        "message": "重建任务已提交，用 GET /api/rag/reindex/status?task_id=xxx 查看进度",
+    }
 
-    total_chunks = 0
-    indexed_count = 0
-    failed_count = 0
-    errors: list[str] = []
 
-    for doc in docs:
-        if not doc.text_content:
-            continue
-        try:
-            chunk_count = await index_document(
-                document_id=doc.id,
-                public_id=doc.public_id,
-                title=doc.title,
-                text_content=doc.text_content.content,
-                owner_id=current.id,
-            )
-        except Exception as exc:  # noqa: BLE001
-            failed_count += 1
-            errors.append(f"{doc.title}: {exc}")
-            logger.error("文档 %s 索引失败: %s", doc.public_id, exc)
-            continue
-
-        if chunk_count > 0:
-            doc.indexed_at = datetime.now(timezone.utc).replace(tzinfo=None)
-            total_chunks += chunk_count
-            indexed_count += 1
-
-    db.commit()
-
-    msg = f"重建完成，{indexed_count} 个文档，{total_chunks} 个分块已索引"
-    if failed_count:
-        msg += f"；{failed_count} 个失败"
-        if errors:
-            msg += f"\n失败详情:\n  - " + "\n  - ".join(errors[:3])
-            if len(errors) > 3:
-                msg += f"\n  ...另有 {len(errors) - 3} 个未列出"
-    return RagReindexResponse(message=msg)
+@router.get("/reindex/status")
+async def reindex_status(
+    task_id: str = Query(..., description="后台任务 ID"),
+    current: User = Depends(get_current_user),
+) -> dict:
+    """查询后台重索引进度。"""
+    with _reindex_lock:
+        task = _reindex_tasks.get(task_id)
+    if not task:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "任务不存在或已清理")
+    # 失败详情只返回前 5 条
+    detail = task["failed_details"][:5]
+    return {
+        "running": task["running"],
+        "total": task["total"],
+        "done": task["done"],
+        "failed": task["failed"],
+        "progress": (
+            round(task["done"] / task["total"] * 100, 1) if task["total"] > 0 else 0.0
+        ),
+        "failed_details": detail,
+        "message": task["message"],
+    }
 
 
 @router.post("/reindex/{public_id}", response_model=RagReindexResponse)
