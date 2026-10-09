@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     rag_chunk_overlap: int = 50
     rag_top_k_retrieve: int = 20
     rag_top_k_rerank: int = 5
+    rag_min_similarity: float = 0.35
     rag_local_only: bool = False
 
     # --- Chat API（OpenAI 兼容，必填）---

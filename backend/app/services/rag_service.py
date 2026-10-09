@@ -187,17 +187,17 @@ async def answer_question(
     reranker = get_reranker(settings.rerank_mode, chat_client)
     candidates = await reranker.rerank(query, candidates, top_k=top_k_rerank)
 
-    # 3.5 相似度阈值过滤 — 降到 0.35，让更多候选给 LLM 自己判断
-    MIN_SIMILARITY = 0.35
+    # 3.5 相似度阈值过滤 — 配置化（默认 0.35，让更多候选给 LLM 自己判断）
+    min_similarity = settings.rag_min_similarity
     original_count = len(candidates)
     candidates = [
         c for c in candidates
-        if c.get("rerank_score", 0) >= MIN_SIMILARITY
+        if c.get("rerank_score", 0) >= min_similarity
     ]
     if len(candidates) < original_count:
         logger.info(
             "相似度阈值过滤: %d → %d (阈值 %.2f)",
-            original_count, len(candidates), MIN_SIMILARITY,
+            original_count, len(candidates), min_similarity,
         )
 
     # 4. 引用组装
