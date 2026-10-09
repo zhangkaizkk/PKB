@@ -65,23 +65,37 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
-# Fail-fast：禁止使用默认凭据启动（生产环境必须覆盖）
-_default_secret = "change-me-to-a-long-random-string"
-_default_admin = "admin123"
-
-if settings.secret_key == _default_secret:
+def _check_fail_fast() -> None:
+    """启动时校验关键配置，避免用默认值直接上线。"""
     import sys
-    print(
-        "[FATAL] 安全风险: SECRET_KEY 仍是默认值 '%s'\n"
-        "  必须在 .env 中设置一个随机字符串，否则 JWT 可被伪造。" % _default_secret,
-        file=sys.stderr,
-    )
-    sys.exit(1)
 
-if settings.admin_password == _default_admin:
-    import sys
-    print(
-        "[WARN] 安全提示: ADMIN_PASSWORD 仍是默认值 '%s'\n"
-        "  建议在 .env 中修改默认密码。" % _default_admin,
-        file=sys.stderr,
-    )
+    fatal = False
+    warn = False
+
+    # SECRET_KEY: 空 / 过短 / 等于默认占位值都拒绝启动
+    default_secret = "change-me-to-a-long-random-string"
+    sk = settings.secret_key.strip()
+    if not sk or len(sk) < 16 or sk == default_secret:
+        print(
+            "[FATAL] 安全风险: SECRET_KEY 无效（空值 / 过短 / 默认占位符）\n"
+            "  修复方式: 在 .env 里设置一个 >= 32 字符的随机串\n"
+            "  Windows: [System.Guid]::NewGuid().ToString() + [System.Guid]::NewGuid().ToString()\n"
+            "  Linux/Mac: openssl rand -hex 32",
+            file=sys.stderr,
+        )
+        fatal = True
+
+    # API Key: Chat 和 Embedding 至少一个不能为空（否则问答功能不可用）
+    if not settings.llm_api_key and not settings.embedding_api_key:
+        print(
+            "[WARN] Chat 和 Embedding API Key 均为空，RAG 问答功能将不可用。\n"
+            "  请在 .env 中配置 LLM_API_KEY 和 EMBEDDING_API_KEY。",
+            file=sys.stderr,
+        )
+        warn = True
+
+    if fatal:
+        sys.exit(1)
+
+
+_check_fail_fast()

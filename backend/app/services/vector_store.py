@@ -163,23 +163,29 @@ def purge_orphan_chunks(valid_document_ids: set[int]) -> int:
     return len(orphan_ids)
 
 
-def get_indexed_documents_summary() -> str:
+def get_indexed_documents_summary(owner_id: int | None = None) -> str:
     """
-    返回当前活跃的已索引文档列表（纯文本，注入 LLM prompt）。
-    格式: "1. 个人简历 (3 chunks, 索引于 2026/10/08 08:49)"
+    返回活跃已索引文档列表（注入 LLM prompt）。
+    按 owner_id 过滤；owner_id=None 表示全用户可见（管理场景）。
     复用 SessionLocal，不新建 engine。
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from app.db.session import SessionLocal
     from app.models.document import Document
 
     db = SessionLocal()
     try:
+        stmt = db.query(
+            Document.id, Document.title, Document.original_name, Document.indexed_at
+        ).filter(
+            Document.deleted_at.is_(None),
+            Document.indexed_at.isnot(None),
+        )
+        if owner_id is not None:
+            stmt = stmt.filter(Document.owner_id == owner_id)
         docs = (
-            db.query(Document.id, Document.title, Document.original_name, Document.indexed_at)
-            .filter(Document.deleted_at.is_(None), Document.indexed_at.isnot(None))
-            .order_by(Document.indexed_at.desc())
+            stmt.order_by(Document.indexed_at.desc())
             .limit(20)
             .all()
         )
@@ -191,7 +197,6 @@ def get_indexed_documents_summary() -> str:
     if not docs:
         return ""
 
-    # 查每个文档的 chunk_count（从 ChromaDB）
     try:
         counts = get_chunk_counts()
     except Exception:  # noqa: BLE001
@@ -203,7 +208,7 @@ def get_indexed_documents_summary() -> str:
         display_title = title or original_name or "未命名"
         chunk_count = counts.get(did, 0)
         if indexed_at is not None:
-            # 数据库返回的是 naive UTC（或 MySQL 的 +08:00 时间），直接 strftime
+            # 存储层已是 UTC naive，直接 strftime
             time_str = indexed_at.strftime("%Y/%m/%d %H:%M")
         else:
             time_str = "-"

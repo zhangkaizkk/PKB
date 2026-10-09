@@ -108,25 +108,26 @@ async def answer_question(
 
     # 1. query 嵌入
     embed_svc = get_embedding_service()
-    query_embedding = await embed_svc.embed_query(query)
-
-    # 2. 构造 Chroma where 过滤 — 按 owner_id 隔离（如果已建立隔离）
-    # 已有分块可能没有 owner_id（旧数据），用 $or 兼容
-    where_filter: dict | None = None
-    if owner_id is not None:
-        where_filter = {
-            "$or": [
-                {"owner_id": owner_id},
-                {"owner_id": {"$exists": False}},  # 兼容旧分块
-            ]
+    try:
+        query_embedding = await embed_svc.embed_query(query)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Query 嵌入失败: %s", exc)
+        return {
+            "answer": "知识库服务暂时不可用，请稍后重试。",
+            "citations": [],
+            "chat_model": None,
+            "embed_model": embed_svc.model,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "latency_ms": int((time.time() - start) * 1000),
         }
 
-    # 3. 向量检索
+    # 2. 不带 where 检索（ChromaDB where 不支持 $exists 等高级算子）
+    # 取回后在 Python 里按 owner_id 过滤，兼容旧数据（owner_id 为 None）
     try:
         results = query_similar(
             query_embedding=query_embedding,
             top_k=top_k_retrieve,
-            where_filter=where_filter,
         )
     except Exception as exc:  # noqa: BLE001
         logger.error("向量检索失败: %s", exc)
@@ -148,6 +149,11 @@ async def answer_question(
     for doc, meta, dist in zip(docs, metas, dists):
         if not meta:
             continue
+        # owner 隔离：如果分块有 owner_id，必须匹配当前用户（兼容旧分块 owner_id 为 None）
+        if owner_id is not None:
+            chunk_owner = meta.get("owner_id")
+            if chunk_owner is not None and chunk_owner != owner_id:
+                continue
         candidates.append({
             "content": doc,
             "document_id": meta.get("document_id"),
@@ -222,7 +228,7 @@ async def answer_question(
 
     # 6.1 注入用户的文件列表 metadata — 让 LLM 能答"我有哪些文件"、"最近的是什么"这类问题
     from app.services.vector_store import get_indexed_documents_summary
-    docs_summary = get_indexed_documents_summary()
+    docs_summary = get_indexed_documents_summary(owner_id=owner_id)
 
     context_block = ""
     has_context = bool(candidates)

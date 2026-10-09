@@ -7,7 +7,7 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      TZ: Asia/Shanghai
+      TZ: UTC
     volumes:
       - mysql_data:/var/lib/mysql
       - ./deploy/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro

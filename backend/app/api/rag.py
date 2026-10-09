@@ -108,7 +108,7 @@ async def reindex_all(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ) -> RagReindexResponse:
-    """重建当前用户所有文档的 RAG 索引。"""
+    """重建当前用户所有文档的 RAG 索引（逐篇容错，一篇失败不影响整批）。"""
     stmt = select(Document).where(
         Document.owner_id == current.id,
         Document.extract_status == "done",
@@ -118,17 +118,26 @@ async def reindex_all(
 
     total_chunks = 0
     indexed_count = 0
+    failed_count = 0
+    errors: list[str] = []
 
     for doc in docs:
         if not doc.text_content:
             continue
-        chunk_count = await index_document(
-            document_id=doc.id,
-            public_id=doc.public_id,
-            title=doc.title,
-            text_content=doc.text_content.content,
-            owner_id=current.id,
-        )
+        try:
+            chunk_count = await index_document(
+                document_id=doc.id,
+                public_id=doc.public_id,
+                title=doc.title,
+                text_content=doc.text_content.content,
+                owner_id=current.id,
+            )
+        except Exception as exc:  # noqa: BLE001
+            failed_count += 1
+            errors.append(f"{doc.title}: {exc}")
+            logger.error("文档 %s 索引失败: %s", doc.public_id, exc)
+            continue
+
         if chunk_count > 0:
             doc.indexed_at = datetime.now(timezone.utc).replace(tzinfo=None)
             total_chunks += chunk_count
@@ -136,9 +145,10 @@ async def reindex_all(
 
     db.commit()
 
-    return RagReindexResponse(
-        message=f"重建完成，{indexed_count} 个文档，{total_chunks} 个分块已索引"
-    )
+    msg = f"重建完成，{indexed_count} 个文档，{total_chunks} 个分块已索引"
+    if failed_count:
+        msg += f"；{failed_count} 个失败（API Key 不可用或网络问题）"
+    return RagReindexResponse(message=msg)
 
 
 @router.post("/reindex/{public_id}", response_model=RagReindexResponse)

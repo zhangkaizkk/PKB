@@ -11,7 +11,47 @@ Write-Host "   PKB  个人知识库  —  一键启动" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "项目: $ProjectDir"
 
-# ========== 2. Docker Desktop ==========
+# ========== 2. 初始化 .env ==========
+$EnvFile = Join-Path $ProjectDir ".env"
+$ExampleFile = Join-Path $ProjectDir ".env.example"
+
+if (-not (Test-Path $EnvFile)) {
+    Write-Host "[*] .env 不存在，从 .env.example 复制 ..." -ForegroundColor Yellow
+    if (Test-Path $ExampleFile) {
+        Copy-Item $ExampleFile $EnvFile
+        Write-Host "[OK] 已复制 .env.example → .env" -ForegroundColor Green
+    } else {
+        Write-Host "[X] .env.example 也不存在，请手动创建 .env" -ForegroundColor Red
+        Read-Host "按回车键退出"
+        exit 1
+    }
+}
+
+# 检查 SECRET_KEY：空 / 默认占位 / 过短都自动生成
+$content = Get-Content $EnvFile -Raw
+$needsSecret = $false
+if ($content -notmatch '(?m)^SECRET_KEY=.+') { $needsSecret = $true }
+else {
+    $sk = ($content -split '(?m)^SECRET_KEY=')[1] -split "`n" | Select-Object -First 1
+    $sk = $sk.Trim()
+    if (-not $sk -or $sk -eq 'change-me-to-a-long-random-string' -or $sk.Length -lt 16) { $needsSecret = $true }
+}
+
+if ($needsSecret) {
+    $newSecret = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 64 | ForEach-Object {[char]$_})
+    Write-Host "[*] 自动生成 SECRET_KEY (长度 $($newSecret.Length)) ..." -ForegroundColor Yellow
+    if ($content -match '(?m)^SECRET_KEY=') {
+        $content = [regex]::Replace($content, '(?m)^SECRET_KEY=.*', "SECRET_KEY=$newSecret")
+    } else {
+        $content += "`nSECRET_KEY=$newSecret`n"
+    }
+    Set-Content -Path $EnvFile -Value $content -Encoding UTF8
+    Write-Host "[OK] SECRET_KEY 已写入 .env" -ForegroundColor Green
+} else {
+    Write-Host "[OK] SECRET_KEY 已配置，跳过自动生成" -ForegroundColor DarkGray
+}
+
+# ========== 3. Docker Desktop ==========
 Write-Host ""
 Write-Host "[*] 检查 Docker ..." -ForegroundColor Yellow
 

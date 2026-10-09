@@ -69,9 +69,22 @@
 | — | fix | **[P1-6] 默认凭据 fail-fast**：`SECRET_KEY` 仍为 `"change-me-to-a-long-random-string"` 时启动直接 `sys.exit(1)`；`ADMIN_PASSWORD` 默认值给 WARN | ✅ |
 | — | fix | **[P1-7] /rag/stats + /rag/config 漏鉴权**：两个接口无 `Depends(get_current_user)`，任何人能读模型名/base_url/索引规模；补鉴权后无 token → 401 | ✅ |
 | — | fix | **[P1-8] 预览接口补 nosniff**：`FileResponse` 加 `headers={"X-Content-Type-Options": "nosniff"}`，防止 MIME sniffing 同源脚本注入 | ✅ |
-| — | feat | **[P1-9] ChromaDB owner 维度隔离**：`index_document` 新增 `owner_id` 参数写入 metadata，`answer_question` 用 `$or` 过滤（兼容旧分块无 owner_id 的情况），多账号不会互读向量 | ✅ |
-| — | fix | **.env.example 移除真实 API Key**：LLM_API_KEY / EMBEDDING_API_KEY 从真实值改成 `sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` 占位符；提醒用户吊销泄露的 Key | ✅ |
+| — | feat | **[P1-9] ChromaDB owner 维度隔离**：`index_document` 新增 `owner_id` 参数写入 metadata；检索不带 where 过滤（ChromaDB 不支持 $exists），取回后在 Python 里按 `meta.get("owner_id")` 过滤（兼容旧分块 owner_id=None） | ✅ |
+| — | fix | **.env.example 移除真实 API Key**：LLM_API_KEY / EMBEDDING_API_KEY 从真实值改成 `sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` 占位符；base_url 从 maas.qianwenaiapi.com 改回官方 dashscope.aliyuncs.com | ✅ |
+
+## v0.0.6 — 修复补遗（审计后）
+
+| Hash | 类型 | 原因 | 状态 |
+|---|---|---|---|
+| — | fix | **[紧急1] .env.example 真实 API Key 再次泄露**：v0.0.6 提交时 LLM/Embedding Key 被写回真实签名字符串（`sk-ws-H.PEHRLRD...`），base_url 也改成了非官方 maas.qianwenaiapi.com；立刻换回占位符 + force push 重写历史 | ✅ 已 force push |
+| — | fix | **[紧急2] $exists 非法 Chroma 算子导致问答全崩**：`answer_question` 构造 `{"$or": [{"owner_id": x}, {"owner_id": {"$exists": False}}]}`，ChromaDB 不支持 $exists → ValueError 被 except Exception 吞掉 → 每次问答返回"知识库检索失败"；改为 Python 层按 meta 过滤，不带 where 检索 | ✅ |
+| — | feat | **[紧急2补充] embed_query try/except**：上一轮 Embedding 失败 `raise` 后，`answer_question` 里的 `embed_query` 没有 try/except，Embedding API 不可用时直接 500 抛栈；补上后返回"知识库服务暂时不可用" | ✅ |
+| — | fix | **[紧急3] fail-fast 与 .env.example 自洽**：之前 `SECRET_KEY` 命中默认值直接 exit(1)，但 .env.example 写的正是默认值 → cp .env.example .env 立刻挂掉；改为空/过短/默认值都拒绝，并在错误信息里给出 Windows + Linux 的生成命令 | ✅ |
+| — | feat | **[紧急3补充] start-pkb.ps1 首次自动生成 SECRET_KEY**：启动脚本加"初始化 .env"步骤 — 若 .env 不存在则从 .env.example 复制，然后检测 SECRET_KEY 是否有效（空/默认/过短），无效就用 64 位随机 alnum 替换 | ✅ |
+| — | fix | **[二-4] 时区统一 UTC**：MySQL `default-time-zone` 从 +08:00 改 +00:00，compose `TZ: Asia/Shanghai` 改 `TZ: UTC`；Python 侧 `now(timezone.utc).replace(tzinfo=None)` 不变；全链路存储 UTC，展示层 strftime | ✅ 需重建 mysql_data |
+| — | feat | **[二-5] get_indexed_documents_summary 补 owner 过滤**：新增 `owner_id` 参数，不带时全用户可见（管理场景）；answer_question 调用时传入当前用户 ID，避免跨用户文件清单泄露 | ✅ |
+| — | feat | **[二-6] reindex_all 逐篇容错**：一篇失败不再整批 500，继续处理后续文档；返回消息里附带失败数量 | ✅ |
 
 ---
 
-**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983` · `v0.0.3` → `d427529` · `v0.0.4` → `HEAD-2` · `v0.0.5` → `HEAD-1` · `v0.0.6` → `HEAD`
+**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983` · `v0.0.3` → `d427529` · `v0.0.4` → `HEAD-3` · `v0.0.5` → `HEAD-2` · `v0.0.6` → `HEAD-1` · `HEAD` → `HEAD`
