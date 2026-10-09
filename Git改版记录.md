@@ -104,7 +104,7 @@
 | — | feat | **reindex_all 错误列表不再浪费**：之前收集 `errors: list[str]` 只用来计 `failed_count`；现在前 3 条失败详情会拼进响应 message，超过 3 条附带计数提示 | ✅ |
 | — | chore | **版本号 0.0.7 → 0.0.8**：frontend package.json + backend pyproject.toml | ✅ |
 
-## v0.0.9（进行中 — 阶段一→二→三）
+## v0.0.9（已完成 — 阶段一→二→三→四）
 
 | Hash | 类型 | 原因 | 状态 |
 |---|---|---|---|
@@ -131,7 +131,8 @@
 | `395e0ae` | chore | **[4.4+4.5] MIT LICENSE + 删脚手架残留**：新增根目录 LICENSE（MIT）；删 HelloWorld.vue / vue.svg / vite.svg / hero.png / frontend/README.md | ✅ |
 | `1b1d812` | feat | **[4.6] PreviewDrawer TXT/MD 预览内容加载**：stores/files.ts 加 previewContent/Loading/Error，openPreview 异步调 preview API 存文本；PreviewDrawer.vue 渲染 loading+error+内容；前端 build 通过 | ✅ |
 | `1b1d812` | chore | **[4.7] 版本号三处统一 0.0.9**：frontend package.json + backend pyproject.toml + main.py FastAPI version 全部改为 0.0.9（之前 main.py 硬编码 0.1.0 不一致） | ✅ |
+| `1650dfe` | fix | **docker: 基础镜像 pin python:3.11-slim-bookworm**：原 python:3.11-slim 指向 Debian 13 trixie，阿里 apt 源未同步导致 404；pin 到 bookworm（Debian 12 stable）解决 | ✅ 镜像重建成功 |
 
 ---
 
-**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983` · `v0.0.3` → `d427529` · `v0.0.4` → `HEAD-10` · `v0.0.5` → `HEAD-9` · `v0.0.6` → `HEAD-8` · `v0.0.7` → `HEAD-7` · `v0.0.8` → `HEAD-6` · `v0.0.9` → `HEAD`
+**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983` · `v0.0.3` → `d427529` · `v0.0.4` → `HEAD-10` · `v0.0.5` → `HEAD-9` · `v0.0.6` → `HEAD-8` · `v0.0.7` → `HEAD-7` · `v0.0.8` → `HEAD-6` · `v0.0.9` → `HEAD`（部署验证：容器三服务健康 + 健康检查 ok）
