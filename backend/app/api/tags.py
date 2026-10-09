@@ -1,4 +1,4 @@
-"""标签 API。"""
+"""标签 API — 按用户隔离，每个用户只看到自己的标签。"""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -14,15 +14,32 @@ router = APIRouter(prefix="/tags", tags=["tags"])
 
 
 @router.get("", response_model=list[TagResponse])
-def list_tags(db: Session = Depends(get_db), current: User = Depends(get_current_user)):
-    return db.query(Tag).order_by(Tag.name).all()
+def list_tags(
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    return (
+        db.query(Tag)
+        .filter(Tag.owner_id == current.id)
+        .order_by(Tag.name)
+        .all()
+    )
 
 
 @router.post("", response_model=TagResponse)
-def create_tag(payload: TagCreate, db: Session = Depends(get_db), current: User = Depends(get_current_user)):
-    if db.query(Tag).filter(Tag.name == payload.name).first():
+def create_tag(
+    payload: TagCreate,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    existing = (
+        db.query(Tag)
+        .filter(Tag.owner_id == current.id, Tag.name == payload.name)
+        .first()
+    )
+    if existing:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "标签已存在")
-    tag = Tag(**payload.model_dump())
+    tag = Tag(owner_id=current.id, **payload.model_dump())
     db.add(tag)
     db.commit()
     db.refresh(tag)
@@ -30,13 +47,28 @@ def create_tag(payload: TagCreate, db: Session = Depends(get_db), current: User 
 
 
 @router.patch("/{tag_id}", response_model=TagResponse)
-def update_tag(tag_id: int, payload: TagUpdate, db: Session = Depends(get_db), current: User = Depends(get_current_user)):
-    tag = db.get(Tag, tag_id)
+def update_tag(
+    tag_id: int,
+    payload: TagUpdate,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    tag = db.query(Tag).filter(
+        Tag.id == tag_id, Tag.owner_id == current.id
+    ).first()
     if not tag:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "标签不存在")
     update = payload.model_dump(exclude_unset=True)
     if update.get("name"):
-        dup = db.query(Tag).filter(Tag.name == update["name"], Tag.id != tag_id).first()
+        dup = (
+            db.query(Tag)
+            .filter(
+                Tag.owner_id == current.id,
+                Tag.name == update["name"],
+                Tag.id != tag_id,
+            )
+            .first()
+        )
         if dup:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "标签名已存在")
     for k, v in update.items():
@@ -47,8 +79,14 @@ def update_tag(tag_id: int, payload: TagUpdate, db: Session = Depends(get_db), c
 
 
 @router.delete("/{tag_id}", status_code=204)
-def delete_tag(tag_id: int, db: Session = Depends(get_db), current: User = Depends(get_current_user)):
-    tag = db.get(Tag, tag_id)
+def delete_tag(
+    tag_id: int,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    tag = db.query(Tag).filter(
+        Tag.id == tag_id, Tag.owner_id == current.id
+    ).first()
     if not tag:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "标签不存在")
     db.delete(tag)

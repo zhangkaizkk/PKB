@@ -104,8 +104,8 @@ class FileService:
             self.storage.remove_tmp(tmp_path)
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"文件读取失败: {exc}") from exc
 
-        # —— 2. SHA-256 去重 ——
-        dup = self._find_active_by_sha(sha_hash)
+        # —— 2. SHA-256 去重（按用户隔离：同用户重复传同文件才算重复）——
+        dup = self._find_active_by_sha(sha_hash, owner_id)
         if dup:
             self.storage.remove_tmp(tmp_path)
             return {"duplicate": True, "document": dup}
@@ -143,9 +143,12 @@ class FileService:
 
     # ---------- SHA-256 去重 ----------
 
-    def _find_active_by_sha(self, sha: str) -> Document | None:
+    def _find_active_by_sha(self, sha: str, owner_id: int) -> Document | None:
+        """按 sha256 + owner_id 查活跃文档（软删除的不算）。"""
         stmt = select(Document).where(
-            Document.sha256 == sha, Document.deleted_at.is_(None)
+            Document.sha256 == sha,
+            Document.owner_id == owner_id,
+            Document.deleted_at.is_(None),
         )
         return self.db.execute(stmt).scalar_one_or_none()
 
@@ -156,19 +159,25 @@ class FileService:
             name = name.strip()
             if not name:
                 continue
-            tag = self.db.query(Tag).filter(Tag.name == name).first()
+            tag = self.db.query(Tag).filter(
+                Tag.owner_id == doc.owner_id, Tag.name == name
+            ).first()
             if not tag:
-                tag = Tag(name=name)
+                tag = Tag(owner_id=doc.owner_id, name=name)
                 self.db.add(tag)
                 self.db.flush()
             doc.tags.append(tag)
 
     def sync_tags(self, doc: Document, tag_ids: list[int]) -> None:
-        """完全覆盖文档的标签。"""
+        """完全覆盖文档的标签（只允许绑定本用户的标签）。"""
         doc.tags.clear()
         if not tag_ids:
             return
-        tags = self.db.query(Tag).filter(Tag.id.in_(tag_ids)).all()
+        tags = (
+            self.db.query(Tag)
+            .filter(Tag.id.in_(tag_ids), Tag.owner_id == doc.owner_id)
+            .all()
+        )
         for t in tags:
             doc.tags.append(t)
 
