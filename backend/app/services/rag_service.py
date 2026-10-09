@@ -64,13 +64,14 @@ async def index_document(
         metadatas.append(meta)
         ids.append(f"doc_{document_id}_chunk_{i}")
 
-    # 4. 写入 ChromaDB（先删旧的，避免重复）
+    # 4. 写入 ChromaDB（先删旧的，避免重复）— Chroma 阻塞库，丢线程池
     try:
-        delete_document_chunks(document_id)
+        await asyncio.to_thread(delete_document_chunks, document_id)
     except Exception:  # noqa: BLE001
         pass
 
-    upsert_chunks(
+    await asyncio.to_thread(
+        upsert_chunks,
         chunks=chunks,
         embeddings=embeddings,
         metadatas=metadatas,
@@ -123,9 +124,10 @@ async def answer_question(
         }
 
     # 2. 不带 where 检索（ChromaDB where 不支持 $exists 等高级算子）
-    # 取回后在 Python 里按 owner_id 过滤，兼容旧数据（owner_id 为 None）
+    # ChromaDB 是同步阻塞库，在 async 路由里会卡住事件循环 — 用 to_thread 丢到线程池
     try:
-        results = query_similar(
+        results = await asyncio.to_thread(
+            query_similar,
             query_embedding=query_embedding,
             top_k=top_k_retrieve,
         )
@@ -228,7 +230,8 @@ async def answer_question(
 
     # 6.1 注入用户的文件列表 metadata — 让 LLM 能答"我有哪些文件"、"最近的是什么"这类问题
     from app.services.vector_store import get_indexed_documents_summary
-    docs_summary = get_indexed_documents_summary(owner_id=owner_id)
+    # 同步 DB 查询 → 丢线程池避免卡事件循环
+    docs_summary = await asyncio.to_thread(get_indexed_documents_summary, owner_id=owner_id)
 
     context_block = ""
     has_context = bool(candidates)
