@@ -125,6 +125,12 @@
 | `759c6ad` | config | **[3.4] MIN_SIMILARITY 配置化**：config.py 加 `rag_min_similarity: float = 0.35`；rag_service 硬编码 `MIN_SIMILARITY=0.35` 改读 settings.rag_min_similarity | ✅ |
 | `b8dfd53` | refactor | **[3.5+3.6] lifespan + 日志配置**：`@app.on_event("startup")` → `@asynccontextmanager lifespan`；shutdown 时 `await close_client()` 关 httpx 连接池；main.py 加 `LOG_LEVEL` env 驱动的 logging.basicConfig | ✅ |
 | `4898163` | refactor | **[3.7] 移除未实现 cloud_api 模式**：config.py 删 rerank_cloud_* 三项 + 注释从 `none\|llm\|cloud_api` 改 `none\|llm`；reranker_service 删 cloud_api 注释 | ✅ |
+| `e7d7e54` | test | **[4.1] pytest 纯函数单测**：tests/conftest.py + tests/unit/test_pure.py（sanitize_filename/make_title/LlmReranker._parse_indices/NoReranker 共 19 项全过）；pyproject dev 依赖加 pytest-asyncio + ruff | ✅ |
+| `4405cc5` | chore | **[4.2] ruff lint+format 全过**：pyproject.toml 加 [tool.ruff] select E/F/I/UP/B，ignore B008(Depends)/B905(zip strict)/F821(SA 前向引用)；ruff format 42 文件；lint+format 全绿 | ✅ |
+| `80f8ca4` | ci | **[4.3] GitHub Actions CI**：.github/workflows/ci.yml — backend 跑 ruff check + format check + pytest 纯函数单测（无需重型依赖） | ✅ |
+| `395e0ae` | chore | **[4.4+4.5] MIT LICENSE + 删脚手架残留**：新增根目录 LICENSE（MIT）；删 HelloWorld.vue / vue.svg / vite.svg / hero.png / frontend/README.md | ✅ |
+| `1b1d812` | feat | **[4.6] PreviewDrawer TXT/MD 预览内容加载**：stores/files.ts 加 previewContent/Loading/Error，openPreview 异步调 preview API 存文本；PreviewDrawer.vue 渲染 loading+error+内容；前端 build 通过 | ✅ |
+| `1b1d812` | chore | **[4.7] 版本号三处统一 0.0.9**：frontend package.json + backend pyproject.toml + main.py FastAPI version 全部改为 0.0.9（之前 main.py 硬编码 0.1.0 不一致） | ✅ |
 
 ---
 
