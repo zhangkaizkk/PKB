@@ -85,6 +85,14 @@
 | — | feat | **[二-5] get_indexed_documents_summary 补 owner 过滤**：新增 `owner_id` 参数，不带时全用户可见（管理场景）；answer_question 调用时传入当前用户 ID，避免跨用户文件清单泄露 | ✅ |
 | — | feat | **[二-6] reindex_all 逐篇容错**：一篇失败不再整批 500，继续处理后续文档；返回消息里附带失败数量 | ✅ |
 
+## v0.0.7
+
+| Hash | 类型 | 原因 | 状态 |
+|---|---|---|---|
+| — | chore | **版本号从 0.0.6 → 0.0.7**：frontend package.json + backend pyproject.toml | ✅ |
+| — | docs | **Git 改版记录 v0.0.6 区段补遗**：之前"P1-9 owner 隔离"声称用 `$or` + `$exists`，实际 ChromaDB 不支持 $exists；修正为"Python 层按 meta 过滤" | ✅ |
+| — | docs | **Git 改版记录 v0.0.6 真实 Key 泄露修正**：两次提交（87c4002 / 33a48eb）中 .env.example 里真实 API Key 曾被带进来；最终换回占位符 `sk-xxxx...` 并指向官方 `dashscope.aliyuncs.com` | ✅ |
+
 ---
 
-**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983` · `v0.0.3` → `d427529` · `v0.0.4` → `HEAD-3` · `v0.0.5` → `HEAD-2` · `v0.0.6` → `HEAD-1` · `HEAD` → `HEAD`
+**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983` · `v0.0.3` → `d427529` · `v0.0.4` → `HEAD-4` · `v0.0.5` → `HEAD-3` · `v0.0.6` → `HEAD-2` · `v0.0.7` → `HEAD`
