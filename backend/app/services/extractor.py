@@ -56,6 +56,25 @@ def _extract_pdf(data: bytes) -> tuple[str | None, str | None]:
     return ("\n".join(parts), None) if parts else ("", None)
 
 
+def _extract_pdf_path(path: str) -> tuple[str | None, str | None]:
+    """从文件路径直接读 PDF — 避免整文件进内存（pypdf 支持 path 参数）。"""
+    from pypdf import PdfReader
+
+    try:
+        reader = PdfReader(path)
+    except Exception as exc:  # noqa: BLE001
+        return None, f"PDF 打开失败: {exc}"
+    parts: list[str] = []
+    for page in reader.pages:
+        try:
+            t = page.extract_text()
+            if t:
+                parts.append(t)
+        except Exception:  # noqa: BLE001
+            continue
+    return ("\n".join(parts), None) if parts else ("", None)
+
+
 def _extract_docx(data: bytes) -> tuple[str | None, str | None]:
     from docx import Document
 
@@ -96,9 +115,23 @@ def _extract_pptx(data: bytes) -> tuple[str | None, str | None]:
 
 
 def extract_text_from_stored(relative_path: str) -> tuple[str | None, str | None]:
-    """从已存储文件抽取。"""
+    """从已存储文件抽取（内存阈值保护：> 50MB 直接跳过）。"""
+    from app.core.config import settings
+
     abs_path = get_storage().finalize_path(relative_path)
+    max_bytes = settings.max_extract_size_mb * 1024 * 1024
+
     try:
+        size = abs_path.stat().st_size
+        if size > max_bytes:
+            return None, f"文件超过 {settings.max_extract_size_mb}MB 阈值，已跳过文本抽取"
+
+        # PDF 从路径直接读（pypdf/fitz.open 都接受 path），避免整文件进内存
+        lower = abs_path.name.lower()
+        if lower.endswith(".pdf"):
+            return _extract_pdf_path(str(abs_path))
+
+        # Office / txt / md 读 bytes（通常不大，已被阈值保护）
         data = abs_path.read_bytes()
         return extract_text_from_bytes(abs_path.name, data)
     except Exception as exc:  # noqa: BLE001

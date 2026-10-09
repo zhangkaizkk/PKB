@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     # --- Storage ---
     data_dir: str = "data/files"
     max_upload_size: int = 2 * 1024 * 1024 * 1024  # 2 GiB
+    max_extract_size_mb: int = 50   # 文本抽取上限（MB），超过跳过
 
     # --- CORS ---
     allowed_origins: str = "http://localhost:8080"
