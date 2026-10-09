@@ -52,6 +52,7 @@ class OpenAiCompatEmbeddingService:
                         api_key=self.api_key,
                         payload=payload,
                         timeout=self.timeout,
+                        max_retries=settings.embedding_max_retries,
                     )
                 batch_emb = [item["embedding"] for item in data["data"]]
                 all_embeddings.extend(batch_emb)

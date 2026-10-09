@@ -39,6 +39,7 @@ class OpenAiCompatChatClient:
                 "stream": False,
             },
             timeout=self.timeout,
+            max_retries=settings.llm_max_retries,
         )
 
         return {
