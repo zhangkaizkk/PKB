@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     # --- Security ---
     secret_key: str = "change-me-to-a-long-random-string"
-    access_token_expire_minutes: int = 10080  # 7 days
+    access_token_expire_minutes: int = 1440  # 1 天（单用户本地应用，如需更长自行调大）
 
     # --- Default admin ---
     admin_username: str = "admin"
