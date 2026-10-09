@@ -147,7 +147,11 @@ async def reindex_all(
 
     msg = f"重建完成，{indexed_count} 个文档，{total_chunks} 个分块已索引"
     if failed_count:
-        msg += f"；{failed_count} 个失败（API Key 不可用或网络问题）"
+        msg += f"；{failed_count} 个失败"
+        if errors:
+            msg += f"\n失败详情:\n  - " + "\n  - ".join(errors[:3])
+            if len(errors) > 3:
+                msg += f"\n  ...另有 {len(errors) - 3} 个未列出"
     return RagReindexResponse(message=msg)
 
 

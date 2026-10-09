@@ -70,32 +70,41 @@ def _check_fail_fast() -> None:
     import sys
 
     fatal = False
-    warn = False
-
-    # SECRET_KEY: 空 / 过短 / 等于默认占位值都拒绝启动
+    # ==== FATAL: SECRET_KEY ====
     default_secret = "change-me-to-a-long-random-string"
     sk = settings.secret_key.strip()
     if not sk or len(sk) < 16 or sk == default_secret:
         print(
-            "[FATAL] 安全风险: SECRET_KEY 无效（空值 / 过短 / 默认占位符）\n"
-            "  修复方式: 在 .env 里设置一个 >= 32 字符的随机串\n"
-            "  Windows: [System.Guid]::NewGuid().ToString() + [System.Guid]::NewGuid().ToString()\n"
-            "  Linux/Mac: openssl rand -hex 32",
+            "[FATAL] SECRET_KEY 无效（空值 / 过短 / 默认占位符）\n"
+            "  修复: 在 .env 里设置 >= 32 字符的随机串\n"
+            "  Linux/Mac: openssl rand -hex 32\n"
+            "  Windows:   -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 64 | ForEach-Object {[char]$_})",
             file=sys.stderr,
         )
         fatal = True
 
-    # API Key: Chat 和 Embedding 至少一个不能为空（否则问答功能不可用）
-    if not settings.llm_api_key and not settings.embedding_api_key:
-        print(
-            "[WARN] Chat 和 Embedding API Key 均为空，RAG 问答功能将不可用。\n"
-            "  请在 .env 中配置 LLM_API_KEY 和 EMBEDDING_API_KEY。",
-            file=sys.stderr,
-        )
-        warn = True
-
     if fatal:
         sys.exit(1)
+
+    # ==== WARN: ADMIN_PASSWORD 默认 ====
+    default_admin = "admin123"
+    if settings.admin_password.strip() == default_admin:
+        print(
+            "[WARN] ADMIN_PASSWORD 仍是默认值 '%s'，请尽快在 .env 中修改。" % default_admin,
+            file=sys.stderr,
+        )
+
+    # ==== WARN: RAG API Key 缺失（分开报，知道哪个没配）====
+    if not settings.llm_api_key.strip():
+        print(
+            "[WARN] LLM_API_KEY 为空，问答功能不可用（不能回答问题）。",
+            file=sys.stderr,
+        )
+    if not settings.embedding_api_key.strip():
+        print(
+            "[WARN] EMBEDDING_API_KEY 为空，RAG 索引/检索不可用（不能上传+搜索文档）。",
+            file=sys.stderr,
+        )
 
 
 _check_fail_fast()
