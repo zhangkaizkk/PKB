@@ -1,4 +1,5 @@
 """文本分块 — 递归分块（LangChain）。"""
+
 from __future__ import annotations
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter

@@ -1,4 +1,5 @@
 """标签 API — 按用户隔离，每个用户只看到自己的标签。"""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -6,8 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
-from app.models.user import User
 from app.models.tag import Tag
+from app.models.user import User
 from app.schemas.tag import TagCreate, TagResponse, TagUpdate
 
 router = APIRouter(prefix="/tags", tags=["tags"])
@@ -18,12 +19,7 @@ def list_tags(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    return (
-        db.query(Tag)
-        .filter(Tag.owner_id == current.id)
-        .order_by(Tag.name)
-        .all()
-    )
+    return db.query(Tag).filter(Tag.owner_id == current.id).order_by(Tag.name).all()
 
 
 @router.post("", response_model=TagResponse)
@@ -32,11 +28,7 @@ def create_tag(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    existing = (
-        db.query(Tag)
-        .filter(Tag.owner_id == current.id, Tag.name == payload.name)
-        .first()
-    )
+    existing = db.query(Tag).filter(Tag.owner_id == current.id, Tag.name == payload.name).first()
     if existing:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "标签已存在")
     tag = Tag(owner_id=current.id, **payload.model_dump())
@@ -53,9 +45,7 @@ def update_tag(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    tag = db.query(Tag).filter(
-        Tag.id == tag_id, Tag.owner_id == current.id
-    ).first()
+    tag = db.query(Tag).filter(Tag.id == tag_id, Tag.owner_id == current.id).first()
     if not tag:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "标签不存在")
     update = payload.model_dump(exclude_unset=True)
@@ -84,9 +74,7 @@ def delete_tag(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    tag = db.query(Tag).filter(
-        Tag.id == tag_id, Tag.owner_id == current.id
-    ).first()
+    tag = db.query(Tag).filter(Tag.id == tag_id, Tag.owner_id == current.id).first()
     if not tag:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "标签不存在")
     db.delete(tag)

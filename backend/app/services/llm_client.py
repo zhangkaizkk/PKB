@@ -1,10 +1,11 @@
 """LLM 客户端 — 调 /v1/chat/completions。"""
+
 from __future__ import annotations
 
 import logging
 
 from app.core.config import settings
-from app.services.api_retry import OpenAiCompatError, post_openai_compat
+from app.services.api_retry import post_openai_compat
 
 logger = logging.getLogger(__name__)
 

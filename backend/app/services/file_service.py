@@ -1,10 +1,10 @@
 """文件业务服务 — 上传、去重、列表、搜索、CRUD、标签绑定。"""
+
 from __future__ import annotations
 
 import datetime as dt
 import mimetypes
-import uuid
-from typing import Iterable
+from collections.abc import Iterable
 
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy import func, or_, select
@@ -14,27 +14,26 @@ from ulid import ULID
 
 from app.services.storage import get_storage
 from app.utils.files import make_storage_path, make_title_from_filename, sanitize_filename
-from app.utils.hashing import compute_sha256_stream
 
 from ..core.config import settings
-from ..models.document import Document, DocumentTag, DocumentText, ExtractStatus
+from ..models.document import Document, DocumentTag, DocumentText
 from ..models.tag import Tag
 
 # 扩展名 → MIME 白名单（不依赖 python-magic，避免 Dockerfile 加系统依赖）
 _MIME_WHITELIST: dict[str, str] = {
-    ".pdf":  "application/pdf",
-    ".txt":  "text/plain",
-    ".md":   "text/markdown",
+    ".pdf": "application/pdf",
+    ".txt": "text/plain",
+    ".md": "text/markdown",
     ".markdown": "text/markdown",
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    ".png":  "image/png",
-    ".jpg":  "image/jpeg",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
-    ".gif":  "image/gif",
+    ".gif": "image/gif",
     ".webp": "image/webp",
-    ".svg":  "image/svg+xml",
+    ".svg": "image/svg+xml",
 }
 
 
@@ -65,7 +64,9 @@ class FileService:
 
     # ---------- 上传 ----------
 
-    def upload(self, file: UploadFile, owner_id: int, tag_names: list[str] | None = None) -> Document | dict:
+    def upload(
+        self, file: UploadFile, owner_id: int, tag_names: list[str] | None = None
+    ) -> Document | dict:
         """处理单个文件上传：tmp 写入 → SHA-256 去重 → 正式目录移动 → DB 插入。
 
         返回 Document 对象（新建）或 {"duplicate": True, "document": Document}（重复）。
@@ -159,9 +160,7 @@ class FileService:
             name = name.strip()
             if not name:
                 continue
-            tag = self.db.query(Tag).filter(
-                Tag.owner_id == doc.owner_id, Tag.name == name
-            ).first()
+            tag = self.db.query(Tag).filter(Tag.owner_id == doc.owner_id, Tag.name == name).first()
             if not tag:
                 tag = Tag(owner_id=doc.owner_id, name=name)
                 self.db.add(tag)
@@ -173,11 +172,7 @@ class FileService:
         doc.tags.clear()
         if not tag_ids:
             return
-        tags = (
-            self.db.query(Tag)
-            .filter(Tag.id.in_(tag_ids), Tag.owner_id == doc.owner_id)
-            .all()
-        )
+        tags = self.db.query(Tag).filter(Tag.id.in_(tag_ids), Tag.owner_id == doc.owner_id).all()
         for t in tags:
             doc.tags.append(t)
 
@@ -264,7 +259,9 @@ class FileService:
 
     # ---------- 查询 ----------
 
-    def get_by_public_id(self, public_id: str, owner_id: int | None = None, include_trashed: bool = False) -> Document | None:
+    def get_by_public_id(
+        self, public_id: str, owner_id: int | None = None, include_trashed: bool = False
+    ) -> Document | None:
         stmt = select(Document).where(Document.public_id == public_id)
         if owner_id is not None:
             stmt = stmt.where(Document.owner_id == owner_id)
@@ -275,7 +272,9 @@ class FileService:
 
     # ---------- 更新 ----------
 
-    def update(self, doc: Document, *, title: str | None = None, original_name: str | None = None) -> Document:
+    def update(
+        self, doc: Document, *, title: str | None = None, original_name: str | None = None
+    ) -> Document:
         if title is not None:
             doc.title = title
         if original_name is not None:
@@ -287,7 +286,7 @@ class FileService:
     # ---------- 软删除 ----------
 
     def soft_delete(self, doc: Document) -> Document:
-        doc.deleted_at = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
+        doc.deleted_at = dt.datetime.now(dt.UTC).replace(tzinfo=None)
         self.db.commit()
         self.db.refresh(doc)
         return doc
@@ -333,7 +332,9 @@ class FileService:
             return
         if content is not None and content.strip():
             doc.extract_status = "done"
-            existing = self.db.query(DocumentText).filter(DocumentText.document_id == doc_id).first()
+            existing = (
+                self.db.query(DocumentText).filter(DocumentText.document_id == doc_id).first()
+            )
             if existing:
                 existing.content = content
             else:

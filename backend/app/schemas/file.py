@@ -1,4 +1,5 @@
 """文件 schema — 文档 5.2 节严格匹配。"""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -38,6 +39,7 @@ class FileResponse(BaseModel):
 
 class UploadItem(BaseModel):
     """POST /api/files/upload 单个条目。"""
+
     status: Literal["created", "duplicate", "failed"]
     file: FileResponse | None = None
     error: str | None = None

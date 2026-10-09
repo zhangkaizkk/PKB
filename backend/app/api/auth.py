@@ -1,4 +1,5 @@
 """认证 API。"""
+
 from __future__ import annotations
 
 import threading
@@ -8,7 +9,6 @@ from collections import deque
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.core.deps import get_current_user
 from app.core.security import create_access_token, verify_password
 from app.db.session import get_db
@@ -21,8 +21,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # key: f"{username}|{ip}", value: deque of failure timestamps
 _login_failures: dict[str, deque[float]] = {}
 _login_lock = threading.Lock()
-_LOGIN_WINDOW_SEC = 15 * 60   # 15 分钟窗口
-_LOGIN_MAX_FAILS = 5         # 窗口内最多失败次数
+_LOGIN_WINDOW_SEC = 15 * 60  # 15 分钟窗口
+_LOGIN_MAX_FAILS = 5  # 窗口内最多失败次数
 
 
 def _record_failure(key: str) -> int:

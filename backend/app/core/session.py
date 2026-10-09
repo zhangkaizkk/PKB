@@ -1,4 +1,5 @@
 """SQLAlchemy 引擎与会话工厂。"""
+
 from __future__ import annotations
 
 from collections.abc import Generator

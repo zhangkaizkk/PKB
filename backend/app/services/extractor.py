@@ -1,9 +1,9 @@
 """文本抽取 — TXT/MD/PDF/DOCX/XLSX/PPTX。"""
+
 from __future__ import annotations
 
 import io
 import os
-from pathlib import Path
 
 from app.services.storage import get_storage
 

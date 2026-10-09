@@ -1,4 +1,5 @@
 """安全文件名处理 — 文档 6.4 节规则。"""
+
 from __future__ import annotations
 
 import os

@@ -1,4 +1,5 @@
 """Tag 模型 — 按用户隔离，同名标签不同用户可各自拥有。"""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -19,6 +20,6 @@ class Tag(Base):
     color: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(6), server_default=func.now(6))
 
-    documents: Mapped[list["Document"]] = relationship(
+    documents: Mapped[list[Document]] = relationship(
         secondary="document_tags", back_populates="tags", cascade="save-update, merge"
     )

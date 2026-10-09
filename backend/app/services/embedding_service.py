@@ -1,4 +1,5 @@
 """Embedding 服务 — 调 /v1/embeddings。"""
+
 from __future__ import annotations
 
 import logging
@@ -58,13 +59,17 @@ class OpenAiCompatEmbeddingService:
             except OpenAiCompatError as exc:
                 logger.error(
                     "Embedding API 调用失败 (batch %d/%d): %s",
-                    i // self.batch_size + 1, len(texts) // self.batch_size + 1, exc,
+                    i // self.batch_size + 1,
+                    len(texts) // self.batch_size + 1,
+                    exc,
                 )
                 raise
             except Exception as exc:  # noqa: BLE001
                 logger.exception(
                     "Embedding 未知错误 (batch %d/%d): %s",
-                    i // self.batch_size + 1, len(texts) // self.batch_size + 1, exc,
+                    i // self.batch_size + 1,
+                    len(texts) // self.batch_size + 1,
+                    exc,
                 )
                 raise
 

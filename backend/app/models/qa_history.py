@@ -1,4 +1,5 @@
 """QA History 模型 — 存储问答历史和 token 消耗统计。"""
+
 from __future__ import annotations
 
 from datetime import datetime

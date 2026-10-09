@@ -1,4 +1,5 @@
 """重排服务 — 根据 RERANK_MODE 选择实现。"""
+
 from __future__ import annotations
 
 import logging
@@ -20,6 +21,7 @@ class Reranker(Protocol):
 
 
 # ==================== 模式 A：none（默认） ====================
+
 
 class NoReranker:
     """不做重排，直接用相似度排序。
@@ -43,6 +45,7 @@ class NoReranker:
 
 # ==================== 模式 B：llm ====================
 
+
 class LlmReranker:
     """用 Chat API 做重排。"""
 
@@ -55,9 +58,7 @@ class LlmReranker:
         candidates: list[dict],
         top_k: int = 5,
     ) -> list[dict]:
-        numbered = "\n".join(
-            f"[{i}] {c['content'][:300]}" for i, c in enumerate(candidates)
-        )
+        numbered = "\n".join(f"[{i}] {c['content'][:300]}" for i, c in enumerate(candidates))
         prompt = f"""请根据用户问题，对以下文档片段按相关性从高到低排序。
 只返回编号，用逗号分隔，最多返回 {top_k} 个，不要解释。
 
@@ -104,6 +105,7 @@ class LlmReranker:
 
 
 # ==================== 工厂 ====================
+
 
 def get_reranker(rerank_mode: str, chat_client=None) -> Reranker:
     """根据配置创建重排器。"""

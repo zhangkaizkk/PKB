@@ -1,4 +1,5 @@
 """FastAPI 依赖项 — 当前用户、鉴权保护。"""
+
 from __future__ import annotations
 
 from fastapi import Depends, HTTPException, status

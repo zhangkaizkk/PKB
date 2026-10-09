@@ -1,11 +1,12 @@
 """RAG API — 问答、历史、重建索引、配置查询。"""
+
 from __future__ import annotations
 
 import asyncio
 import logging
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import desc, select
@@ -44,8 +45,12 @@ def _reindex_bg(task_id: str, owner_id: int) -> None:
     """后台重索引 — 在线程池线程里用 asyncio.run。"""
     with _reindex_lock:
         _reindex_tasks[task_id] = {
-            "running": True, "total": 0, "done": 0, "failed": 0,
-            "failed_details": [], "message": "启动中",
+            "running": True,
+            "total": 0,
+            "done": 0,
+            "failed": 0,
+            "failed_details": [],
+            "message": "启动中",
         }
 
     db = SessionLocal()
@@ -92,7 +97,7 @@ def _reindex_bg(task_id: str, owner_id: int) -> None:
                 continue
 
             if chunk_count > 0:
-                doc.indexed_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                doc.indexed_at = datetime.now(UTC).replace(tzinfo=None)
                 total_chunks += chunk_count
                 indexed_count += 1
 
@@ -109,23 +114,28 @@ def _reindex_bg(task_id: str, owner_id: int) -> None:
             msg += f"；{failed_count} 个失败"
 
         with _reindex_lock:
-            _reindex_tasks[task_id].update({
-                "running": False,
-                "message": msg,
-            })
+            _reindex_tasks[task_id].update(
+                {
+                    "running": False,
+                    "message": msg,
+                }
+            )
 
     except Exception as exc:  # noqa: BLE001
         logger.exception("后台重索引异常: %s", exc)
         with _reindex_lock:
-            _reindex_tasks[task_id].update({
-                "running": False,
-                "message": f"任务异常终止: {exc}",
-            })
+            _reindex_tasks[task_id].update(
+                {
+                    "running": False,
+                    "message": f"任务异常终止: {exc}",
+                }
+            )
     finally:
         db.close()
 
 
 # ============ 问答 ============
+
 
 @router.post("/ask", response_model=RagAskResponse)
 async def ask(
@@ -161,6 +171,7 @@ async def ask(
 
 # ============ 问答历史 ============
 
+
 @router.get("/history", response_model=list[RagHistoryItem])
 def get_history(
     limit: int = Query(default=50, ge=1, le=200),
@@ -178,22 +189,25 @@ def get_history(
     results = []
     for item in items:
         citations = item.citations if item.citations else None
-        results.append(RagHistoryItem(
-            id=item.id,
-            question=item.question,
-            answer=item.answer,
-            citations=citations,
-            chat_model=item.chat_model,
-            embed_model=item.embed_model,
-            prompt_tokens=item.prompt_tokens,
-            completion_tokens=item.completion_tokens,
-            latency_ms=item.latency_ms,
-            created_at=item.created_at,
-        ))
+        results.append(
+            RagHistoryItem(
+                id=item.id,
+                question=item.question,
+                answer=item.answer,
+                citations=citations,
+                chat_model=item.chat_model,
+                embed_model=item.embed_model,
+                prompt_tokens=item.prompt_tokens,
+                completion_tokens=item.completion_tokens,
+                latency_ms=item.latency_ms,
+                created_at=item.created_at,
+            )
+        )
     return results
 
 
 # ============ 重建索引 ============
+
 
 @router.post("/reindex", status_code=status.HTTP_202_ACCEPTED)
 async def reindex_all(
@@ -226,9 +240,7 @@ async def reindex_status(
         "total": task["total"],
         "done": task["done"],
         "failed": task["failed"],
-        "progress": (
-            round(task["done"] / task["total"] * 100, 1) if task["total"] > 0 else 0.0
-        ),
+        "progress": (round(task["done"] / task["total"] * 100, 1) if task["total"] > 0 else 0.0),
         "failed_details": detail,
         "message": task["message"],
     }
@@ -257,15 +269,14 @@ async def reindex_one(
         text_content=doc.text_content.content,
         owner_id=current.id,
     )
-    doc.indexed_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    doc.indexed_at = datetime.now(UTC).replace(tzinfo=None)
     db.commit()
 
-    return RagReindexResponse(
-        message=f"索引完成，{chunk_count} 个分块"
-    )
+    return RagReindexResponse(message=f"索引完成，{chunk_count} 个分块")
 
 
 # ============ 索引统计 ============
+
 
 @router.get("/stats", response_model=RagStatsResponse)
 def get_stats(
@@ -303,18 +314,21 @@ def get_indexed_documents(
 
     result = []
     for doc in docs:
-        result.append(RagIndexedDocument(
-            public_id=doc.public_id,
-            title=doc.title,
-            original_name=doc.original_name,
-            chunk_count=chunk_counts.get(doc.id, 0),
-            indexed_at=doc.indexed_at,
-        ))
+        result.append(
+            RagIndexedDocument(
+                public_id=doc.public_id,
+                title=doc.title,
+                original_name=doc.original_name,
+                chunk_count=chunk_counts.get(doc.id, 0),
+                indexed_at=doc.indexed_at,
+            )
+        )
 
     return RagIndexedListResponse(documents=result)
 
 
 # ============ 配置（脱敏）============
+
 
 @router.get("/config", response_model=RagConfigResponse)
 def get_config(

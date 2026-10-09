@@ -7,9 +7,9 @@
 
 不支持：docx/xlsx/pptx 等（由 extractor.py 处理）
 """
+
 from __future__ import annotations
 
-import io
 import os
 import tempfile
 from pathlib import Path
@@ -30,6 +30,7 @@ def _get_ocr():
     global _ocr_instance
     if _ocr_instance is None:
         from paddleocr import PaddleOCR
+
         _ocr_instance = PaddleOCR(
             use_angle_cls=True,
             lang=settings.ocr_lang,

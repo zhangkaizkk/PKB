@@ -1,13 +1,11 @@
 """统一 API 重试模块 — 所有 OpenAI 兼容调用都走这里。"""
+
 from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Awaitable, Callable
 
 import httpx
-
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +96,10 @@ async def post_openai_compat(
                 wait = _exponential_backoff(attempt)
                 logger.warning(
                     "API 网络异常 (attempt %d/%d): %s — 等待 %.1fs 重试",
-                    attempt, max_retries, exc, wait,
+                    attempt,
+                    max_retries,
+                    exc,
+                    wait,
                 )
                 await asyncio.sleep(wait)
                 continue
@@ -124,7 +125,10 @@ async def post_openai_compat(
                 wait = _exponential_backoff(attempt)
             logger.warning(
                 "API 返回 %d (attempt %d/%d) — 等待 %.1fs 重试",
-                status, attempt, max_retries, wait,
+                status,
+                attempt,
+                max_retries,
+                wait,
             )
             await asyncio.sleep(wait)
             continue
@@ -144,6 +148,8 @@ async def post_openai_compat(
     raise OpenAiCompatError(f"API 调用最终失败: {last_exc}") from last_exc
 
 
-def _exponential_backoff(attempt: int, multiplier: float = 1.0, min_s: float = 1.0, max_s: float = 8.0) -> float:
+def _exponential_backoff(
+    attempt: int, multiplier: float = 1.0, min_s: float = 1.0, max_s: float = 8.0
+) -> float:
     """指数退避：1s → 2s → 4s → 8s（封顶）。"""
     return min(max_s, max(min_s, multiplier * (2 ** (attempt - 1))))

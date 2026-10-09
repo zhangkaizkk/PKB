@@ -1,9 +1,9 @@
 """RAG 服务 — 编排索引管道和问答流程。"""
+
 from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
 
 from app.core.config import settings
 from app.services.chunker import chunk_text
@@ -12,7 +12,6 @@ from app.services.llm_client import get_chat_client
 from app.services.reranker_service import get_reranker
 from app.services.vector_store import (
     delete_document_chunks,
-    get_collection,
     upsert_chunks,
 )
 
@@ -20,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 # ==================== 索引管道 ====================
+
 
 async def index_document(
     document_id: int,
@@ -52,7 +52,7 @@ async def index_document(
     # 3. 构造元数据和 ID
     metadatas = []
     ids = []
-    for i, chunk in enumerate(chunks):
+    for i, _chunk in enumerate(chunks):
         meta = {
             "document_id": document_id,
             "public_id": public_id,
@@ -88,6 +88,7 @@ def unindex_document(document_id: int) -> None:
 
 
 # ==================== 问答流程 ====================
+
 
 async def answer_question(
     query: str,
@@ -156,14 +157,16 @@ async def answer_question(
             chunk_owner = meta.get("owner_id")
             if chunk_owner is not None and chunk_owner != owner_id:
                 continue
-        candidates.append({
-            "content": doc,
-            "document_id": meta.get("document_id"),
-            "public_id": meta.get("public_id"),
-            "title": meta.get("title"),
-            "chunk_index": meta.get("chunk_index"),
-            "distance": dist,
-        })
+        candidates.append(
+            {
+                "content": doc,
+                "document_id": meta.get("document_id"),
+                "public_id": meta.get("public_id"),
+                "title": meta.get("title"),
+                "chunk_index": meta.get("chunk_index"),
+                "distance": dist,
+            }
+        )
 
     if not candidates:
         latency = int((time.time() - start) * 1000)
@@ -190,14 +193,13 @@ async def answer_question(
     # 3.5 相似度阈值过滤 — 配置化（默认 0.35，让更多候选给 LLM 自己判断）
     min_similarity = settings.rag_min_similarity
     original_count = len(candidates)
-    candidates = [
-        c for c in candidates
-        if c.get("rerank_score", 0) >= min_similarity
-    ]
+    candidates = [c for c in candidates if c.get("rerank_score", 0) >= min_similarity]
     if len(candidates) < original_count:
         logger.info(
             "相似度阈值过滤: %d → %d (阈值 %.2f)",
-            original_count, len(candidates), min_similarity,
+            original_count,
+            len(candidates),
+            min_similarity,
         )
 
     # 4. 引用组装
@@ -230,6 +232,7 @@ async def answer_question(
 
     # 6.1 注入用户的文件列表 metadata — 让 LLM 能答"我有哪些文件"、"最近的是什么"这类问题
     from app.services.vector_store import get_indexed_documents_summary
+
     # 同步 DB 查询 → 丢线程池避免卡事件循环
     docs_summary = await asyncio.to_thread(get_indexed_documents_summary, owner_id=owner_id)
 
@@ -259,10 +262,15 @@ async def answer_question(
     # 7. 调用 Chat API
     try:
         chat_client = get_chat_client()
-        llm_result = await chat_client.chat([
-            {"role": "system", "content": "你是一个友好的 AI 助手，同时也是用户的个人知识库问答助手。"},
-            {"role": "user", "content": prompt},
-        ])
+        llm_result = await chat_client.chat(
+            [
+                {
+                    "role": "system",
+                    "content": "你是一个友好的 AI 助手，同时也是用户的个人知识库问答助手。",
+                },
+                {"role": "user", "content": prompt},
+            ]
+        )
 
         latency = int((time.time() - start) * 1000)
         return {

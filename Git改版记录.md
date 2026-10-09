@@ -104,6 +104,28 @@
 | — | feat | **reindex_all 错误列表不再浪费**：之前收集 `errors: list[str]` 只用来计 `failed_count`；现在前 3 条失败详情会拼进响应 message，超过 3 条附带计数提示 | ✅ |
 | — | chore | **版本号 0.0.7 → 0.0.8**：frontend package.json + backend pyproject.toml | ✅ |
 
+## v0.0.9（进行中 — 阶段一→二→三）
+
+| Hash | 类型 | 原因 | 状态 |
+|---|---|---|---|
+| `9eab719` | feat | **[1.1] 登录失败限流**：auth.py 加模块级 `dict+threading.Lock+deque`，key=`username\|ip`，15 分钟窗口 5 次触发 429；登录成功清零；401 消息附带"还可尝试 N 次" | ✅ 验证：第 5 次开始 429 |
+| `0ab5158` | fix | **[1.2] token 有效期 7d→1d**：config.py `access_token_expire_minutes` 10080→1440；.env.example 同步改 | ✅ |
+| `0ab5158` | docs | **[1.5] .env.example SECRET_KEY 补注释**：上方加 `# 必须替换为随机串，生成方式见 README 快速开始` | ✅ |
+| `215ebec` | fix | **[1.3] 端口绑定 127.0.0.1**：compose mysql 3306 + backend 8000 都从 `0.0.0.0` 改成 `127.0.0.1:port:port`；nginx 8080 仍对外（浏览器需要） | ✅ |
+| `1fa87bd` | fix | **[1.4] 服务端扩展名白名单判 MIME**：不再信任 `UploadFile.content_type`，改用 `_detect_mime(filename)` — 白名单 13 种扩展名 → `mimetypes.guess_type` → `application/octet-stream`；零新依赖 | ✅ |
+| `c3b0ad7` | perf | **[2.1] asyncio.to_thread 包阻塞调用**：rag_service.py 里 ChromaDB query_similar / upsert_chunks / 同步 DB 调用全部 `asyncio.to_thread(...)`，不卡事件循环 | ✅ |
+| `9b5f8da` | perf | **[2.2+2.3] httpx 单例 + 重试 429/5xx**：api_retry.py 重写 — 模块级 `_client` 单例懒加载 + `get_client/close_client`；重试条件={Timeout/Connect/ReadError + 429/500/502/503/504}，4xx 立即抛；指数退避 + 读 Retry-After；llm/embedding max_retries 配置项真正生效 | ✅ |
+| `5217062` | fix | **[2.4] 去 new_event_loop + 跨 loop 信号量**：embedding_service.py 删模块级 `asyncio.Semaphore(3)`；files.py `new_event_loop()/run_until_complete/close` → `asyncio.run()` | ✅ |
+| `e0c4e63` | fix | **[2.5] 抽取内存阈值**：config.py 加 `max_extract_size_mb=50`；extractor.py 新 `_extract_pdf_path` 让 pypdf 直接读路径不整文件进内存 | ✅ |
+| `05cf139` | perf | **[2.6] 边写边校验大小**：upload while 循环里加 `if size+len(chunk)>limit: truncated=True; break`，413 消息带 GiB 值；超限立即中断不占磁盘 | ✅ |
+| `feac33c` | feat | **[2.7] reindex 后台化**：POST /rag/reindex 改 202+task_id，BackgroundTasks + `_reindex_tasks` dict + threading.Lock；新增 GET /rag/reindex/status 查进度（running/total/done/failed/progress） | ✅ |
+| `985592d` | fix | **[3.1] Text with_variant→LONGTEXT**：document.py DocumentText.content + qa_history.py question/answer 从 `Text().with_variant(Text,"mysql")` 改 `Text().with_variant(LONGTEXT,"mysql")`，与 Alembic 迁移对齐 | ✅ |
+| `83af7db` | fix | **[3.2] 删掉 create_all + 缺表 fail-fast**：init_db.py 删 `Base.metadata.create_all`，启动查 information_schema.tables 5 张核心表，缺任一 print+sys.exit(1) 提示跑 alembic upgrade head | ✅ |
+| `fae6e07` | feat | **[3.3] tags 按用户隔离 + 去重 owner_id+sha256**：Tag 模型加 owner_id + UniqueConstraint(owner_id,name)；file_service `_find_active_by_sha`/`_bind_tags`/`sync_tags` 全部带 owner；tags.py API 全按 current_user 过滤；新增 Alembic 0003 迁移 | ✅ |
+| `759c6ad` | config | **[3.4] MIN_SIMILARITY 配置化**：config.py 加 `rag_min_similarity: float = 0.35`；rag_service 硬编码 `MIN_SIMILARITY=0.35` 改读 settings.rag_min_similarity | ✅ |
+| `b8dfd53` | refactor | **[3.5+3.6] lifespan + 日志配置**：`@app.on_event("startup")` → `@asynccontextmanager lifespan`；shutdown 时 `await close_client()` 关 httpx 连接池；main.py 加 `LOG_LEVEL` env 驱动的 logging.basicConfig | ✅ |
+| `4898163` | refactor | **[3.7] 移除未实现 cloud_api 模式**：config.py 删 rerank_cloud_* 三项 + 注释从 `none\|llm\|cloud_api` 改 `none\|llm`；reranker_service 删 cloud_api 注释 | ✅ |
+
 ---
 
-**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983` · `v0.0.3` → `d427529` · `v0.0.4` → `HEAD-5` · `v0.0.5` → `HEAD-4` · `v0.0.6` → `HEAD-3` · `v0.0.7` → `HEAD-2` · `v0.0.8` → `HEAD`
+**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983` · `v0.0.3` → `d427529` · `v0.0.4` → `HEAD-10` · `v0.0.5` → `HEAD-9` · `v0.0.6` → `HEAD-8` · `v0.0.7` → `HEAD-7` · `v0.0.8` → `HEAD-6` · `v0.0.9` → `HEAD`

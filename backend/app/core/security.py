@@ -1,7 +1,8 @@
 """密码哈希 + JWT 签发 / 校验。"""
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import bcrypt
@@ -13,6 +14,7 @@ ALGORITHM = "HS256"
 
 
 # ---------- 密码 ----------
+
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
@@ -27,8 +29,9 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 # ---------- JWT ----------
 
+
 def create_access_token(subject: str | int, expires_delta: timedelta | None = None) -> str:
-    expire = datetime.now(timezone.utc) + (
+    expire = datetime.now(UTC) + (
         expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
     )
     payload: dict[str, Any] = {"sub": str(subject), "exp": expire}

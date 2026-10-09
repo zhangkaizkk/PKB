@@ -1,10 +1,11 @@
 """Document 模型 + 关联表（document_texts / document_tags）。"""
+
 from __future__ import annotations
 
 from datetime import datetime
 from typing import Literal
 
-from sqlalchemy import BigInteger, CHAR, DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy import CHAR, BigInteger, DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -44,15 +45,17 @@ class Document(Base):
     indexed_at: Mapped[datetime | None] = mapped_column(DateTime(6), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(6), server_default=func.now(6))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(6), server_default=func.now(6), onupdate=func.now(6))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(6), server_default=func.now(6), onupdate=func.now(6)
+    )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(6), nullable=True)
 
     # 关系
-    owner: Mapped["User"] = relationship(back_populates="documents")
-    text_content: Mapped["DocumentText | None"] = relationship(
+    owner: Mapped[User] = relationship(back_populates="documents")
+    text_content: Mapped[DocumentText | None] = relationship(
         back_populates="document", uselist=False, cascade="all, delete-orphan"
     )
-    tags: Mapped[list["Tag"]] = relationship(
+    tags: Mapped[list[Tag]] = relationship(
         secondary="document_tags", back_populates="documents", cascade="save-update, merge"
     )
 
@@ -60,15 +63,22 @@ class Document(Base):
 class DocumentText(Base):
     __tablename__ = "document_texts"
 
-    document_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("documents.id", ondelete="CASCADE"), primary_key=True)
+    document_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("documents.id", ondelete="CASCADE"), primary_key=True
+    )
     content: Mapped[str] = mapped_column(Text().with_variant(LONGTEXT, "mysql"), nullable=False)
 
-    document: Mapped["Document"] = relationship(back_populates="text_content")
+    document: Mapped[Document] = relationship(back_populates="text_content")
 
 
 class DocumentTag(Base):
     """文档—标签 关联表（非 class-mapped，仅让 SQLAlchemy 认识）。"""
+
     __tablename__ = "document_tags"
 
-    document_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("documents.id", ondelete="CASCADE"), primary_key=True)
-    tag_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
+    document_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("documents.id", ondelete="CASCADE"), primary_key=True
+    )
+    tag_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True
+    )

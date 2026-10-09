@@ -1,4 +1,5 @@
 """流式 SHA-256 计算。"""
+
 from __future__ import annotations
 
 import hashlib

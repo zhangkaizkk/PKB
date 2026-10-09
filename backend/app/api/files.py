@@ -1,17 +1,27 @@
 """文件 API — 文档 5.2 节完整实现 + OCR + RAG 后台任务。"""
+
 from __future__ import annotations
 
 import asyncio
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
-from fastapi.responses import FileResponse as StarletteFileResponse, StreamingResponse
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
+from fastapi.responses import FileResponse as StarletteFileResponse
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.document import Document
@@ -122,7 +132,7 @@ def _bg_ocr_and_index(doc_id: int) -> None:
             try:
                 # asyncio.run() 每次在线程池线程里新建临时事件循环，安全且无跨 loop 冲突
                 asyncio.run(_do_index(doc))
-                doc.indexed_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                doc.indexed_at = datetime.now(UTC).replace(tzinfo=None)
                 db.commit()
             except Exception as exc:  # noqa: BLE001
                 logger.error("文档 %s RAG 索引失败: %s", doc.public_id, exc)
@@ -146,6 +156,7 @@ async def _do_index(doc: Document) -> None:
 
 
 # ============ 上传 ============
+
 
 @router.post("/upload", response_model=UploadResponse)
 async def upload_files(
@@ -186,6 +197,7 @@ async def upload_files(
 
 # ============ OCR 状态查询 ============
 
+
 @router.get("/{public_id}/ocr-status", response_model=dict)
 def get_ocr_status(
     public_id: str,
@@ -207,6 +219,7 @@ def get_ocr_status(
 
 # ============ 列表 ============
 
+
 @router.get("", response_model=Paginated[FileResponse])
 def list_files(
     q: str | None = None,
@@ -218,7 +231,9 @@ def list_files(
     current: User = Depends(get_current_user),
 ) -> Paginated[FileResponse]:
     svc = FileService(db)
-    items, total = svc.list_documents(current.id, q=q, tag_id=tag_id, status=status, page=page, page_size=page_size)
+    items, total = svc.list_documents(
+        current.id, q=q, tag_id=tag_id, status=status, page=page, page_size=page_size
+    )
     return Paginated(
         items=[_enrich(i) for i in items],
         total=total,
@@ -228,6 +243,7 @@ def list_files(
 
 
 # ============ 详情 ============
+
 
 @router.get("/{public_id}", response_model=FileResponse)
 def get_file(
@@ -243,6 +259,7 @@ def get_file(
 
 
 # ============ 预览 ============
+
 
 @router.get("/{public_id}/preview")
 def preview_file(
@@ -279,10 +296,13 @@ def preview_file(
         return {"content": content}
 
     # 其他 → 415
-    raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "该格式暂不支持在线预览，请下载查看")
+    raise HTTPException(
+        status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "该格式暂不支持在线预览，请下载查看"
+    )
 
 
 # ============ 下载 ============
+
 
 @router.get("/{public_id}/download")
 def download_file(
@@ -309,6 +329,7 @@ def download_file(
 
 # ============ 更新 ============
 
+
 @router.patch("/{public_id}", response_model=FileResponse)
 def update_file(
     public_id: str,
@@ -325,6 +346,7 @@ def update_file(
     title = payload.title
     if title is None and payload.original_name is not None:
         from app.utils.files import make_title_from_filename
+
         title = make_title_from_filename(payload.original_name)
 
     doc = svc.update(doc, title=title, original_name=payload.original_name)
@@ -332,6 +354,7 @@ def update_file(
 
 
 # ============ 标签更新 ============
+
 
 @router.put("/{public_id}/tags", response_model=FileResponse)
 def update_tags(
@@ -351,6 +374,7 @@ def update_tags(
 
 
 # ============ 批量清空回收站（必须放在 /{public_id} 之前，避免被路径参数吞掉） ============
+
 
 @router.delete("/purge-all", status_code=200)
 def purge_all(
@@ -380,6 +404,7 @@ def purge_all(
 
 # ============ 软删除 ============
 
+
 @router.delete("/{public_id}", response_model=FileResponse)
 def soft_delete(
     public_id: str,
@@ -396,6 +421,7 @@ def soft_delete(
 
 # ============ 恢复 ============
 
+
 @router.post("/{public_id}/restore", response_model=FileResponse)
 def restore(
     public_id: str,
@@ -411,6 +437,7 @@ def restore(
 
 
 # ============ 彻底删除 ============
+
 
 @router.delete("/{public_id}/purge", status_code=204)
 def purge(

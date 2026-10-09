@@ -1,4 +1,5 @@
 """通用响应类型。"""
+
 from __future__ import annotations
 
 from typing import Generic, TypeVar

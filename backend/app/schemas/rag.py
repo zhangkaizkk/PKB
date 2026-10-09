@@ -1,8 +1,8 @@
 """RAG 相关 Schemas。"""
+
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -63,7 +63,7 @@ class RagConfigResponse(BaseModel):
 
 class RagReindexResponse(BaseModel):
     message: str
-    task_id: str | None = None   # 后台任务模式：POST /reindex 返回，GET /reindex/status 查进度
+    task_id: str | None = None  # 后台任务模式：POST /reindex 返回，GET /reindex/status 查进度
 
 
 class RagIndexedDocument(BaseModel):

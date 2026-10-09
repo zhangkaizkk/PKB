@@ -1,4 +1,5 @@
 """Pydantic Settings — 从环境变量读取配置。"""
+
 from __future__ import annotations
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -19,7 +20,7 @@ class Settings(BaseSettings):
     # --- Storage ---
     data_dir: str = "data/files"
     max_upload_size: int = 2 * 1024 * 1024 * 1024  # 2 GiB
-    max_extract_size_mb: int = 50   # 文本抽取上限（MB），超过跳过
+    max_extract_size_mb: int = 50  # 文本抽取上限（MB），超过跳过
 
     # --- CORS ---
     allowed_origins: str = "http://localhost:8080"
@@ -89,7 +90,7 @@ def _check_fail_fast() -> None:
     default_admin = "admin123"
     if settings.admin_password.strip() == default_admin:
         print(
-            "[WARN] ADMIN_PASSWORD 仍是默认值 '%s'，请尽快在 .env 中修改。" % default_admin,
+            f"[WARN] ADMIN_PASSWORD 仍是默认值 '{default_admin}'，请尽快在 .env 中修改。",
             file=sys.stderr,
         )
 

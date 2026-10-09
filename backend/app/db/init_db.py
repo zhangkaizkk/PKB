@@ -1,4 +1,5 @@
 """启动时初始化：查表存在性 + 插入默认 admin。"""
+
 from __future__ import annotations
 
 import sys

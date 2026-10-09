@@ -1,4 +1,5 @@
 """向量存储 — ChromaDB 持久化。"""
+
 from __future__ import annotations
 
 import logging
@@ -169,7 +170,6 @@ def get_indexed_documents_summary(owner_id: int | None = None) -> str:
     按 owner_id 过滤；owner_id=None 表示全用户可见（管理场景）。
     复用 SessionLocal，不新建 engine。
     """
-    from datetime import datetime
 
     from app.db.session import SessionLocal
     from app.models.document import Document
@@ -184,11 +184,7 @@ def get_indexed_documents_summary(owner_id: int | None = None) -> str:
         )
         if owner_id is not None:
             stmt = stmt.filter(Document.owner_id == owner_id)
-        docs = (
-            stmt.order_by(Document.indexed_at.desc())
-            .limit(20)
-            .all()
-        )
+        docs = stmt.order_by(Document.indexed_at.desc()).limit(20).all()
     except Exception:  # noqa: BLE001
         return ""
     finally:
