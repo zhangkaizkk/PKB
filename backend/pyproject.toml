@@ -1,6 +1,6 @@
 [project]
 name = "pkb-backend"
-version = "0.0.7"
+version = "0.0.8"
 description = "PKB Personal Knowledge Base - Backend"
 requires-python = ">=3.11"
 dependencies = [

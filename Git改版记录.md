@@ -93,6 +93,17 @@
 | — | docs | **Git 改版记录 v0.0.6 区段补遗**：之前"P1-9 owner 隔离"声称用 `$or` + `$exists`，实际 ChromaDB 不支持 $exists；修正为"Python 层按 meta 过滤" | ✅ |
 | — | docs | **Git 改版记录 v0.0.6 真实 Key 泄露修正**：两次提交（87c4002 / 33a48eb）中 .env.example 里真实 API Key 曾被带进来；最终换回占位符 `sk-xxxx...` 并指向官方 `dashscope.aliyuncs.com` | ✅ |
 
+## v0.0.8
+
+| Hash | 类型 | 原因 | 状态 |
+|---|---|---|---|
+| — | docs | **README 手动启动路径修复**：补 `openssl rand -hex 32` SECRET_KEY 生成命令、跨平台 PowerShell 命令、旧数据时区迁移 SQL（documents/qa_history/tags 三张表减 8h）；新增一键启动（Windows 推荐）vs 手动启动（Linux/macOS）两个区段 | ✅ |
+| — | fix | **fail-fast 恢复 ADMIN_PASSWORD 默认值告警**：0.0.6 把它连同 `$default_admin` 校验一起删了，0.0.7 重写 `_check_fail_fast()` 时又漏加；现在默认 admin123 会触发 WARN | ✅ |
+| — | fix | **API Key 分开报缺失**：之前 `not llm and not embedding` 两条件合并只报一次；改为各自独立判断，缺哪个报哪个（LLM 缺 → 问答不可用，Embedding 缺 → 索引/检索不可用） | ✅ |
+| — | fix | **_check_fail_fast 清理死代码**：`warn = False` 赋值后从未使用 → 已删 | ✅ |
+| — | feat | **reindex_all 错误列表不再浪费**：之前收集 `errors: list[str]` 只用来计 `failed_count`；现在前 3 条失败详情会拼进响应 message，超过 3 条附带计数提示 | ✅ |
+| — | chore | **版本号 0.0.7 → 0.0.8**：frontend package.json + backend pyproject.toml | ✅ |
+
 ---
 
-**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983` · `v0.0.3` → `d427529` · `v0.0.4` → `HEAD-4` · `v0.0.5` → `HEAD-3` · `v0.0.6` → `HEAD-2` · `v0.0.7` → `HEAD`
+**版本标签**：`v0.0.1` → `9bf33f8` · `v0.0.2` → `4e5a983` · `v0.0.3` → `d427529` · `v0.0.4` → `HEAD-5` · `v0.0.5` → `HEAD-4` · `v0.0.6` → `HEAD-3` · `v0.0.7` → `HEAD-2` · `v0.0.8` → `HEAD`
