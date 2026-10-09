@@ -120,12 +120,8 @@ def _bg_ocr_and_index(doc_id: int) -> None:
         doc = db.get(Document, doc_id)  # 刷新
         if doc and doc.text_content and doc.text_content.content.strip():
             try:
-                # 用新的事件循环运行 async 索引（避免与 FastAPI 主 loop 冲突）
-                loop = asyncio.new_event_loop()
-                try:
-                    loop.run_until_complete(_do_index(doc))
-                finally:
-                    loop.close()
+                # asyncio.run() 每次在线程池线程里新建临时事件循环，安全且无跨 loop 冲突
+                asyncio.run(_do_index(doc))
                 doc.indexed_at = datetime.now(timezone.utc).replace(tzinfo=None)
                 db.commit()
             except Exception as exc:  # noqa: BLE001

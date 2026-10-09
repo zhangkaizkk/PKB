@@ -1,7 +1,6 @@
 """Embedding 服务 — 调 /v1/embeddings。"""
 from __future__ import annotations
 
-import asyncio
 import logging
 
 from app.core.config import settings
@@ -9,8 +8,9 @@ from app.services.api_retry import OpenAiCompatError, post_openai_compat
 
 logger = logging.getLogger(__name__)
 
-# 并发信号量 — 避免触发服务商限流
-_embed_semaphore = asyncio.Semaphore(3)
+# 并发控制：embed_texts 按 batch_size 分批串行，模块级信号量在这里只会绑定创建它的那个 loop，
+# 一旦跨 loop（后台索引 new_event_loop() 和 FastAPI 主 loop）就会抛 "bound to a different event loop"。
+# 现在批次已经串行 await post_openai_compat，信号量也不会真正阻塞 — 直接去掉。
 
 
 class OpenAiCompatEmbeddingService:
@@ -45,22 +45,27 @@ class OpenAiCompatEmbeddingService:
                 payload["dimensions"] = self.dim
 
             try:
-                async with _embed_semaphore:
-                    data = await post_openai_compat(
-                        base_url=self.base_url,
-                        path="/embeddings",
-                        api_key=self.api_key,
-                        payload=payload,
-                        timeout=self.timeout,
-                        max_retries=settings.embedding_max_retries,
-                    )
+                data = await post_openai_compat(
+                    base_url=self.base_url,
+                    path="/embeddings",
+                    api_key=self.api_key,
+                    payload=payload,
+                    timeout=self.timeout,
+                    max_retries=settings.embedding_max_retries,
+                )
                 batch_emb = [item["embedding"] for item in data["data"]]
                 all_embeddings.extend(batch_emb)
             except OpenAiCompatError as exc:
-                logger.error("Embedding API 调用失败 (batch %d/%d): %s", i // self.batch_size + 1, len(texts) // self.batch_size + 1, exc)
-                raise  # 失败直接抛，让上层决定如何处理（保持 failed 状态，不写 indexed_at）
+                logger.error(
+                    "Embedding API 调用失败 (batch %d/%d): %s",
+                    i // self.batch_size + 1, len(texts) // self.batch_size + 1, exc,
+                )
+                raise
             except Exception as exc:  # noqa: BLE001
-                logger.exception("Embedding 未知错误 (batch %d/%d): %s", i // self.batch_size + 1, len(texts) // self.batch_size + 1, exc)
+                logger.exception(
+                    "Embedding 未知错误 (batch %d/%d): %s",
+                    i // self.batch_size + 1, len(texts) // self.batch_size + 1, exc,
+                )
                 raise
 
         return all_embeddings
