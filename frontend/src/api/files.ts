@@ -74,4 +74,9 @@ export const filesApi = {
     document.body.removeChild(a)
     setTimeout(() => URL.revokeObjectURL(url), 2000)
   },
+
+  /** TXT/MD 预览 — 返回文本内容；图片/PDF 不走此方法，直接用 preview_url */
+  previewText(publicId: string) {
+    return http.get<{ content: string }>(`/files/${publicId}/preview`)
+  },
 }

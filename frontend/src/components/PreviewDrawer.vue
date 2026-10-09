@@ -24,8 +24,14 @@ const visible = computed({
           <div><b>上传时间：</b>{{ new Date(item.created_at).toLocaleString() }}</div>
         </div>
         <n-scrollbar class="preview-area">
-          <!-- 文本类：TXT / MD -->
-          <pre v-if="item.mime_type.startsWith('text/') || item.original_name.endsWith('.md')" class="text-preview">{{ /* content fetched inline? */ '' }}</pre>
+          <!-- TXT / MD 文本预览 — 内容从 store 异步加载 -->
+          <div
+            v-if="item.mime_type.startsWith('text/') || item.original_name.endsWith('.md')"
+          >
+            <div v-if="files.previewLoading" class="loading">加载中...</div>
+            <div v-else-if="files.previewError" class="error">{{ files.previewError }}</div>
+            <pre v-else class="text-preview">{{ files.previewContent || '（文件为空）' }}</pre>
+          </div>
           <!-- 图片 / PDF 内嵌 -->
           <img v-else-if="item.mime_type.startsWith('image/')" :src="item.preview_url" class="img-preview" />
           <iframe v-else-if="item.mime_type === 'application/pdf'" :src="item.preview_url" class="pdf-preview" />
@@ -53,4 +59,9 @@ const visible = computed({
 .img-preview { max-width: 100%; border-radius: 8px; }
 .pdf-preview { width: 100%; height: calc(100vh - 260px); border: 1px solid #eee; border-radius: 8px; }
 .unsupported { padding: 40px; text-align: center; color: #999; }
+.loading, .error {
+  padding: 40px; text-align: center; font-size: 14px;
+}
+.loading { color: #888; }
+.error { color: #c62828; }
 </style>
