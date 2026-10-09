@@ -1,8 +1,8 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
-# 使用阿里 Debian 镜像源 + PaddleOCR 系统依赖
+# Aliyun apt mirror + PaddleOCR system deps
 RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
     sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list 2>/dev/null; \
     apt-get update && \
