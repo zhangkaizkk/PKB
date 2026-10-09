@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Literal
 
 from sqlalchemy import BigInteger, CHAR, DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -60,7 +61,7 @@ class DocumentText(Base):
     __tablename__ = "document_texts"
 
     document_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("documents.id", ondelete="CASCADE"), primary_key=True)
-    content: Mapped[str] = mapped_column(Text().with_variant(Text, "mysql"), nullable=False)
+    content: Mapped[str] = mapped_column(Text().with_variant(LONGTEXT, "mysql"), nullable=False)
 
     document: Mapped["Document"] = relationship(back_populates="text_content")
 
