@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { NAlert, NSpin, NButton, NTag, NCollapse, NCollapseItem, useMessage } from 'naive-ui'
 import ChatWindow from '@/components/ChatWindow.vue'
 import { ragApi } from '@/api/rag'
@@ -10,7 +10,11 @@ const config = ref<RagConfigResponse | null>(null)
 const stats = ref<RagStatsResponse | null>(null)
 const indexedDocs = ref<RagIndexedDocument[]>([])
 const loading = ref(true)
+
+// 重建索引状态
 const reindexing = ref(false)
+const reindexProgress = ref('')  // 按钮上显示的进度文本
+let _pollTimer: ReturnType<typeof setInterval> | null = null
 
 async function loadData() {
   try {
@@ -33,13 +37,50 @@ async function loadData() {
 async function onReindex() {
   try {
     reindexing.value = true
+    reindexProgress.value = '提交中…'
     const res = await ragApi.reindexAll()
-    message.success(res.data.message)
-    await loadData()
+    const taskId = res.data.task_id
+
+    // 开始轮询进度
+    _pollTimer = setInterval(async () => {
+      try {
+        const statusRes = await ragApi.reindexStatus(taskId)
+        const s = statusRes.data
+        reindexProgress.value = `已处理 ${s.done}/${s.total}（${s.progress}%）`
+
+        if (!s.running) {
+          // 任务结束
+          stopPolling()
+
+          if (s.failed > 0) {
+            message.warning(
+              `${s.message}；前 ${Math.min(5, s.failed_details.length)} 条失败：\n` +
+              s.failed_details.slice(0, 5).join('\n')
+            )
+          } else {
+            message.success(s.message)
+          }
+
+          reindexing.value = false
+          reindexProgress.value = ''
+          await loadData()
+        }
+      } catch (err: any) {
+        // 单轮询失败不致命，等下一轮
+        console.warn('reindex status poll failed:', err)
+      }
+    }, 1500)
   } catch (err: any) {
     message.error(err?.response?.data?.detail || '重建索引失败')
-  } finally {
     reindexing.value = false
+    reindexProgress.value = ''
+  }
+}
+
+function stopPolling() {
+  if (_pollTimer) {
+    clearInterval(_pollTimer)
+    _pollTimer = null
   }
 }
 
@@ -55,6 +96,7 @@ function downloadUrl(publicId: string) {
 }
 
 onMounted(loadData)
+onUnmounted(stopPolling)
 </script>
 
 <template>
@@ -86,9 +128,10 @@ onMounted(loadData)
           size="small"
           quaternary
           :loading="reindexing"
+          :disabled="reindexing"
           @click="onReindex"
         >
-          重建索引
+          {{ reindexing ? (reindexProgress || '重建中…') : '重建索引' }}
         </n-button>
       </div>
     </div>
@@ -105,8 +148,8 @@ onMounted(loadData)
         <p style="color: #999; margin-bottom: 16px">
           请先上传文档，系统会自动索引；或点击下方按钮手动重建
         </p>
-        <n-button type="primary" :loading="reindexing" @click="onReindex">
-          手动重建索引
+        <n-button type="primary" :loading="reindexing" :disabled="reindexing" @click="onReindex">
+          {{ reindexing ? (reindexProgress || '重建中…') : '手动重建索引' }}
         </n-button>
       </div>
     </div>

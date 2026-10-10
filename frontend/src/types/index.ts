@@ -134,3 +134,18 @@ export interface RagIndexedDocument {
 export interface RagIndexedListResponse {
   documents: RagIndexedDocument[]
 }
+
+export interface RagReindexTask {
+  task_id: string
+  message: string
+}
+
+export interface RagReindexStatus {
+  running: boolean
+  total: number
+  done: number
+  failed: number
+  progress: number
+  failed_details: string[]
+  message: string
+}

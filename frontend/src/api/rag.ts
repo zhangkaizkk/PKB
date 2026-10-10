@@ -4,6 +4,8 @@ import type {
   RagAskResponse,
   RagHistoryItem,
   RagIndexedListResponse,
+  RagReindexStatus,
+  RagReindexTask,
   RagStatsResponse,
   RagConfigResponse,
 } from '@/types'
@@ -16,7 +18,10 @@ export const ragApi = {
     http.get<RagHistoryItem[]>('/rag/history', { params: { limit } }),
 
   reindexAll: () =>
-    http.post<{ message: string }>('/rag/reindex'),
+    http.post<RagReindexTask>('/rag/reindex'),
+
+  reindexStatus: (taskId: string) =>
+    http.get<RagReindexStatus>('/rag/reindex/status', { params: { task_id: taskId } }),
 
   reindexOne: (publicId: string) =>
     http.post<{ message: string }>(`/rag/reindex/${publicId}`),
