@@ -37,24 +37,45 @@ docker compose up -d --build
 
 ### 旧数据时区迁移（从 v0.0.6 升级）
 
-MySQL 时区从 +08:00 改 UTC，旧行仍存北京时间。重建 mysql_data：
+MySQL 的时区从 `+08:00` 改为 `+00:00` 后，旧数据的显示口径会变化。**先确认列类型再执行**：
+
+```sql
+SHOW CREATE TABLE documents;
+-- 看 created_at 是 TIMESTAMP 还是 DATETIME
+```
+
+**情况 A：`created_at` 是 `TIMESTAMP`（Alembic 建的，通常如此）**
+
+`created_at` / `updated_at` 由 MySQL 自己生成，存的是正确的时间点，**不要修改**。
+只有应用层写入的 `indexed_at` / `deleted_at` 会读早 8 小时：
+
+```sql
+UPDATE documents SET indexed_at = indexed_at + INTERVAL 8 HOUR WHERE indexed_at IS NOT NULL;
+UPDATE documents SET deleted_at = deleted_at + INTERVAL 8 HOUR WHERE deleted_at IS NOT NULL;
+```
+
+**情况 B：`created_at` 是 `DATETIME`（只有被 `create_all` 建过表才可能）**
+
+```sql
+UPDATE documents SET created_at = created_at - INTERVAL 8 HOUR,
+                     updated_at = updated_at - INTERVAL 8 HOUR;
+UPDATE qa_history SET created_at = created_at - INTERVAL 8 HOUR;
+UPDATE tags      SET created_at = created_at - INTERVAL 8 HOUR;
+UPDATE users     SET created_at = created_at - INTERVAL 8 HOUR;
+-- indexed_at / deleted_at 本来就是 UTC，不要动
+```
+
+执行前请先备份。可空列不需要 `WHERE`：`NULL ± INTERVAL` 结果仍是 `NULL`。
+
+验证：取一条刚上传的文档，`created_at` 应约等于当前时间减 8 小时（UTC 口径），
+并执行 `SELECT NOW(), UTC_TIMESTAMP();` 确认两者一致。
+
+**更省心的替代方案（推荐，数据量小时首选）**：直接重建数据卷后重新上传、重建索引。
 
 ```bash
 docker compose down
 docker volume rm pkb_mysql_data
 docker compose up -d --build
-# 重新上传文档 + 重建索引
-```
-
-或保留数据手动换算（documents / qa_history / tags 三张表）：
-
-```sql
-UPDATE documents SET created_at = created_at - INTERVAL 8 HOUR,
-                     updated_at = updated_at - INTERVAL 8 HOUR,
-                     deleted_at  = deleted_at  - INTERVAL 8 HOUR WHERE deleted_at IS NOT NULL,
-                     indexed_at  = indexed_at  - INTERVAL 8 HOUR WHERE indexed_at IS NOT NULL;
-UPDATE qa_history SET created_at = created_at - INTERVAL 8 HOUR;
-UPDATE tags      SET created_at = created_at - INTERVAL 8 HOUR;
 ```
 
 ## 目录结构
