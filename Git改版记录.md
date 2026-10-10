@@ -104,6 +104,14 @@
 | — | feat | **reindex_all 错误列表不再浪费**：之前收集 `errors: list[str]` 只用来计 `failed_count`；现在前 3 条失败详情会拼进响应 message，超过 3 条附带计数提示 | ✅ |
 | — | chore | **版本号 0.0.7 → 0.0.8**：frontend package.json + backend pyproject.toml | ✅ |
 
+## v0.0.10（进行中 — P0 已完成）
+
+| Hash | 类型 | 原因 | 状态 |
+|---|---|---|---|
+| `323b47d` | fix | **P0-1 CI pytest 必然失败**：`backend/tests/test_e2e.py` 顶层 `import httpx` + 模块级 httpx.get()，文件名匹配 `test_*.py` 被 pytest 收集 → CI 报 ModuleNotFoundError；调试脚本 `test_e2e.py` / `quick_download.py` 移至 `scripts/debug/`，pyproject.toml 加 `[tool.pytest.ini_options] testpaths=["tests/unit"] asyncio_mode="strict"`，conftest.py 补依赖边界注释 | ✅ 验证：ruff + pytest 19/19 全过 |
+| `f34857a` | fix | **P0-2 Docker 下两个新配置完全失效**：`MAX_EXTRACT_SIZE_MB` / `RAG_MIN_SIMILARITY` 加进了 config.py 但 docker-compose.yml 未转发到容器；同时 compose 和 .env.example 还残留已从 config.py 移除的 `RERANK_CLOUD_*` 三行死变量。compose 补两行、删三行；.env.example 补 `RAG_MIN_SIMILARITY=0.35`、删三行、改注释为 `none|llm` | ✅ 验证：`docker compose config` 输出两变量可见、cloud_api 完全消失 |
+| `9d1e341` | fix | **P0-3 purge_orphan_chunks 跨用户误删向量**：`get_indexed_documents()` 调用 `purge_orphan_chunks(valid_ids)` 时 valid_ids 只包含当前用户的已索引文档 ID，导致**用户 A 打开问答页就把用户 B 的 ChromaDB 分块全部删掉**。修法：purge 从 GET 接口移出，改在 `_reindex_bg` 后台任务完成后统一执行一次，且 alive_ids = **全库** `Document.deleted_at.is_(None)` 的 ID 集合 | ✅ 验证：ruff + pytest 通过，多用户打开 GET 不再互相影响 |
+
 ## v0.0.9（已完成 — 阶段一→二→三→四）
 
 | Hash | 类型 | 原因 | 状态 |
