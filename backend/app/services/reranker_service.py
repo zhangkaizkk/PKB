@@ -80,9 +80,11 @@ class LlmReranker:
             indices = list(range(min(top_k, len(candidates))))
 
         reranked = []
-        for rank, idx in enumerate(indices):
+        for idx in indices:
             c = candidates[idx].copy()
-            c["rerank_score"] = round(1.0 - rank * 0.01, 4)
+            # 评分口径统一为向量相似度（1 - cosine distance），LLM 只负责排序
+            dist = c.get("distance", 2.0)
+            c["rerank_score"] = max(0.0, 1.0 - dist)
             reranked.append(c)
         return reranked
 
