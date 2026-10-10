@@ -36,15 +36,34 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/rag", tags=["rag"])
 
 # ==================== 后台重索引任务状态（进程内字典，单 worker 足够）====================
-# task_id → {running, total, done, failed, failed_details, message}
+# task_id → {owner_id, created_at, running, total, done, failed, failed_details, message}
 _reindex_tasks: dict[str, dict] = {}
 _reindex_lock = threading.Lock()
+_GC_MAX_AGE_MINUTES = 30  # 任务完成后保留 30 分钟再清理
+
+
+def _gc_tasks() -> None:
+    """清理已完成超过 30 分钟的任务（每次访问顺手调用，不需要后台线程）。"""
+    now = datetime.now(UTC).replace(tzinfo=None)
+    with _reindex_lock:
+        stale = [
+            tid
+            for tid, task in _reindex_tasks.items()
+            if not task.get("running", True)
+            and (now - task["created_at"]).total_seconds() > _GC_MAX_AGE_MINUTES * 60
+        ]
+        for tid in stale:
+            _reindex_tasks.pop(tid, None)
+        if stale:
+            logger.info("GC 清理 %d 条过期 reindex 任务", len(stale))
 
 
 def _reindex_bg(task_id: str, owner_id: int) -> None:
     """后台重索引 — 在线程池线程里用 asyncio.run。"""
     with _reindex_lock:
         _reindex_tasks[task_id] = {
+            "owner_id": owner_id,
+            "created_at": datetime.now(UTC).replace(tzinfo=None),
             "running": True,
             "total": 0,
             "done": 0,
@@ -223,12 +242,26 @@ async def reindex_all(
     background_tasks: BackgroundTasks,
     current: User = Depends(get_current_user),
 ) -> dict:
-    """重建当前用户所有文档的 RAG 索引（后台执行，立即返回 task_id）。"""
+    """重建当前用户所有文档的 RAG 索引（后台执行，立即返回 task_id）。
+
+    同一用户同时只允许一个运行中任务；重复提交返回 409。
+    """
+    _gc_tasks()  # 顺手清理过期任务
+
+    # 检查是否有运行中任务
+    with _reindex_lock:
+        for existing in _reindex_tasks.values():
+            if existing["owner_id"] == current.id and existing["running"]:
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT,
+                    detail="已有重建任务进行中，请稍后再试",
+                )
+
     task_id = uuid.uuid4().hex
     background_tasks.add_task(_reindex_bg, task_id, current.id)
     return {
         "task_id": task_id,
-        "message": "重建任务已提交，用 GET /api/rag/reindex/status?task_id=xxx 查看进度",
+        "message": "重建任务已提交，正在后台处理…",
     }
 
 
@@ -237,11 +270,18 @@ async def reindex_status(
     task_id: str = Query(..., description="后台任务 ID"),
     current: User = Depends(get_current_user),
 ) -> dict:
-    """查询后台重索引进度。"""
+    """查询后台重索引进度（只能查自己提交的任务）。"""
+    _gc_tasks()  # 顺手清理过期任务
+
     with _reindex_lock:
         task = _reindex_tasks.get(task_id)
+
     if not task:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "任务不存在或已清理")
+    # 任务归属校验：只能看自己的
+    if task.get("owner_id") != current.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "任务不存在或已清理")  # 统一 404 不泄露
+
     # 失败详情只返回前 5 条
     detail = task["failed_details"][:5]
     return {
@@ -291,7 +331,8 @@ async def reindex_one(
 def get_stats(
     current: User = Depends(get_current_user),
 ) -> RagStatsResponse:
-    stats = count_collected()
+    # 只统计当前用户的向量分块（v0.0.9 前是全库统计，多用户时数据会串）
+    stats = count_collected(owner_id=current.id)
     return RagStatsResponse(**stats)
 
 

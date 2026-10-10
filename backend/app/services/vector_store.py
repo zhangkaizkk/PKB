@@ -78,8 +78,12 @@ def query_similar(
     return collection.query(**kwargs)
 
 
-def count_collected() -> dict:
-    """获取集合统计。"""
+def count_collected(owner_id: int | None = None) -> dict:
+    """获取集合统计。
+
+    owner_id 不为 None 时，只统计属于该用户的分块（按 ChromaDB metadata 过滤）。
+    未标注 owner_id 的历史孤儿分块（v0.0.9 之前写入）单独统计为 unassigned。
+    """
     client = get_chroma_client()
     try:
         collection = client.get_collection(settings.chroma_collection_name)
@@ -90,19 +94,29 @@ def count_collected() -> dict:
             "collection": settings.chroma_collection_name,
         }
 
-    total = collection.count()
-
-    # 按 document_id 统计唯一文档数
-    if total > 0:
-        peek = collection.peek(limit=min(total, 10000))
-        metadatas = peek.get("metadatas") or []
-        doc_ids = set()
-        for m in metadatas:
-            if m and "document_id" in m:
+    # owner_id 过滤：用 ChromaDB where 语法
+    if owner_id is not None:
+        where_filter = {"owner_id": owner_id}
+        total = collection.count(where=where_filter)
+        # 全量 peek（10k 上限），然后按 owner_id 过滤
+        all_metas = collection.peek(limit=min(collection.count(), 10000)).get("metadatas") or []
+        doc_ids: set[int] = set()
+        for m in all_metas:
+            if m and m.get("owner_id") == owner_id and "document_id" in m:
                 doc_ids.add(m["document_id"])
         unique_docs = len(doc_ids)
     else:
-        unique_docs = 0
+        total = collection.count()
+        if total > 0:
+            peek = collection.peek(limit=min(total, 10000))
+            metadatas = peek.get("metadatas") or []
+            doc_ids = set()
+            for m in metadatas:
+                if m and "document_id" in m:
+                    doc_ids.add(m["document_id"])
+            unique_docs = len(doc_ids)
+        else:
+            unique_docs = 0
 
     return {
         "total_chunks": total,
