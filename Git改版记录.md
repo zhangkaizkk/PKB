@@ -124,6 +124,13 @@
 | `456ae3d` | fix | **P2-13c docker-compose 层禁用 oneDNN**：backend env 加三变量（进程启动即生效，C++ 层初始化就读到）：`FLAGS_use_mkldnn=0` / `FLAGS_use_onednn=0` / `PADDLE_PDX_ENABLE_MKLDNN_BYDEFAULT=0` | ✅ **完整 API 实测通过**：上传截图 → OCR 异步处理 → `ocr_status=done`, `ocr_error=null` |
 | `3cae2fe` | chore | **P1-6 收尾：alembic/env.py 加 compare_index=False**：autogenerate 验证确认 TIMESTAMP(fsp=6) 类型无差异。手写迁移里的辅助索引 idx_* / FULLTEXT ft_* 不在 SA metadata 里，用 compare_index=False 抑制噪声 | ✅ |
 
+## v0.0.11（已完成 — CI pytest 必红修复）
+
+| Hash | 类型 | 原因 | 状态 |
+|---|---|---|---|
+| `372faea` | fix | **sanitize_filename 跨平台统一**：原代码 `os.path.basename(raw.replace("\", "/").replace("/", "\"))` 用 `os.path`，Windows(ntpath) 认 `\`，Linux(posixpath) 只认 `/` → CI ubuntu 下 basename 拿不到分隔符、返回整串，再被 `_ILLEGAL_CHARS` 压成下划线（`/etc/passwd` → `_etc_passwd`）。新增 `_PATH_SEP = re.compile(r"[\\/]+")`，改 `name = _PATH_SEP.split(raw)[-1]`；`make_title_from_filename` 同步。**CI 连续 6 次运行 pytest 全红，修后 Linux/Windows 行为一致** | ✅ ruff check / ruff format / pytest / posix_sim_check 全 19 passed |
+| `4af2a39` | test | **新增 posix_sim_check.py 防回归**：在 Windows 上 monkey-patch `os.path.basename` / `splitext` 为 `posixpath` 对应实现，直接复现 CI(ubuntu-latest) 的文件命名语义。以后改文件名处理逻辑前先跑一遍 | ✅ |
+
 ## v0.0.9（已完成 — 阶段一→二→三→四）
 
 | Hash | 类型 | 原因 | 状态 |
