@@ -29,7 +29,7 @@ from app.schemas.rag import (
     RagStatsResponse,
 )
 from app.services.rag_service import answer_question, index_document
-from app.services.vector_store import count_collected, get_chunk_counts
+from app.services.vector_store import count_collected, get_chunk_counts, purge_orphan_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +108,15 @@ def _reindex_bg(task_id: str, owner_id: int) -> None:
                 )
 
         db.commit()
+
+        # 重建完成后清理孤儿 chunk —— 必须基于全库活跃文档，不能只看当前用户，
+        # 否则会误删其他用户的向量分块（P0-3 跨用户破坏路径）
+        all_alive_ids = {
+            row[0] for row in db.query(Document.id).filter(Document.deleted_at.is_(None)).all()
+        }
+        purged = purge_orphan_chunks(all_alive_ids)
+        if purged:
+            logger.info("重索引后清理孤儿 chunk %d 条（全库口径）", purged)
 
         msg = f"重建完成，{indexed_count} 个文档，{total_chunks} 个分块已索引"
         if failed_count:
@@ -291,9 +300,11 @@ def get_indexed_documents(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ) -> RagIndexedListResponse:
-    """返回当前用户已建立索引的文档列表（含分块数）。"""
-    from app.services.vector_store import purge_orphan_chunks
+    """返回当前用户已建立索引的文档列表（含分块数）。
 
+    注意：孤儿 chunk 清理已移出此接口，改为在重建索引后台任务结束时统一执行，
+    避免 GET 触发写操作、也避免跨用户误删。
+    """
     stmt = (
         select(Document)
         .where(
@@ -305,11 +316,8 @@ def get_indexed_documents(
     )
     docs = db.scalars(stmt).all()
 
-    # 自动清理孤儿 chunk（历史残留的已删除文档向量）
+    # 只统计当前用户活跃文档的分块数
     valid_ids = {doc.id for doc in docs}
-    purge_orphan_chunks(valid_ids)
-
-    # 只统计活跃文档的分块数
     chunk_counts = get_chunk_counts(valid_document_ids=valid_ids)
 
     result = []
