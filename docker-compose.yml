@@ -41,6 +41,11 @@ services:
       OCR_LANG: ${OCR_LANG}
       OCR_USE_GPU: ${OCR_USE_GPU}
 
+      # PaddlePaddle 3.x CPU oneDNN + PIR 兼容性绕过
+      FLAGS_use_mkldnn: "0"
+      FLAGS_use_onednn: "0"
+      PADDLE_PDX_ENABLE_MKLDNN_BYDEFAULT: "0"
+
       # RAG
       CHROMA_PERSIST_DIR: /app/data/chroma
       RAG_CHUNK_SIZE: ${RAG_CHUNK_SIZE}
