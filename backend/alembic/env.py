@@ -1,14 +1,15 @@
 """Alembic env.py — 从 Pydantic Settings 读取真实 DB URL。"""
+
 from __future__ import annotations
 
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+import app.models  # noqa: F401 — 注册元数据
+from alembic import context
 from app.core.config import settings
 from app.db.base import Base
-import app.models  # noqa: F401 — 注册元数据
 
 config = context.config
 
@@ -40,7 +41,14 @@ def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            # 手写迁移项目的 autogenerate 噪声抑制：
+            # - 辅助索引 / FULLTEXT 索引只在 DDL 里、不在 SA metadata 里
+            # - 类型对比已对得上（TIMESTAMP(fsp=6) 无差异），不需要 compare_type=False
+            compare_index=False,
+        )
         with context.begin_transaction():
             context.run_migrations()
 
