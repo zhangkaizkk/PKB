@@ -7,6 +7,8 @@ import re
 
 # Windows 禁止 + 额外安全字符
 _ILLEGAL_CHARS = re.compile(r'[\\/:*?"<>|]')
+# 路径分隔符：同时覆盖 Windows 的 \ 与 POSIX 的 /
+_PATH_SEP = re.compile(r"[\\/]+")
 _MAX_LEN = 200
 _FALLBACK = "untitled"
 
@@ -20,8 +22,10 @@ def sanitize_filename(raw: str) -> str:
     4. 限长 200
     5. 空文件名使用 'untitled'
     """
-    # 1. 只保留 basename（兼容路径分隔符）
-    name = os.path.basename(raw.replace("\\", "/").replace("/", "\\"))
+    # 1. 只保留 basename（显式按 / 和 \ 切分，不依赖 os.path）
+    #    注意：os.path.basename 在 Windows(ntpath) 与 Linux(posixpath) 行为不同，
+    #    本项目开发在 Windows、运行在 Linux(Docker) 与 CI(ubuntu)，必须统一口径。
+    name = _PATH_SEP.split(raw)[-1]
 
     # 2. 替换非法字符
     name = _ILLEGAL_CHARS.sub("_", name)
@@ -50,5 +54,5 @@ def make_storage_path(sha256_prefix: str, safe_name: str, year: int, month: int)
 
 def make_title_from_filename(filename: str) -> str:
     """从文件名生成默认 title（去掉扩展名）。"""
-    base = os.path.splitext(os.path.basename(filename))[0]
+    base = os.path.splitext(_PATH_SEP.split(filename)[-1])[0]
     return base or _FALLBACK
