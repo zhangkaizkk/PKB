@@ -40,7 +40,12 @@ async function submit() {
           <n-input v-model:value="form.username" placeholder="admin" />
         </n-form-item>
         <n-form-item label="密码">
-          <n-input v-model:value="form.password" type="password" show-password-on="click" placeholder="admin123" />
+          <n-input
+            v-model:value="form.password"
+            type="password"
+            show-password-on="click"
+            placeholder="admin123"
+          />
         </n-form-item>
         <n-button type="primary" block :loading="loading" @click="submit">
           <span class="btn-label">登录</span>
@@ -53,7 +58,10 @@ async function submit() {
 
 <style scoped>
 .login-wrap {
-  display: flex; align-items: center; justify-content: center; height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
   background: var(--cyb-bg-0);
   /* 淡网格 */
   background-image:
@@ -63,48 +71,77 @@ async function submit() {
   background-position: -1px -1px;
 }
 .login-card {
-  width: 380px; padding: 40px 36px 32px;
+  width: 380px;
+  padding: 40px 36px 32px;
   background: var(--cyb-bg-2);
   border: 1px solid var(--cyb-border);
   border-radius: var(--cyb-radius);
 }
 .login-logo {
-  text-align: center; margin-bottom: 8px;
-  font-family: var(--cyb-mono); letter-spacing: 3px;
+  text-align: center;
+  margin-bottom: 8px;
+  font-family: var(--cyb-mono);
+  letter-spacing: 3px;
 }
 .login-brand {
-  font-size: 28px; font-weight: 700; color: var(--cyb-neon);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--cyb-neon);
   text-shadow: var(--cyb-neon-glow);
 }
 .login-cursor {
-  color: var(--cyb-neon); font-size: 22px;
+  color: var(--cyb-neon);
+  font-size: 22px;
   animation: blink 1s step-end infinite;
 }
-@keyframes blink { 50% { opacity: 0; } }
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
 
 .login-card h1 {
-  margin: 0; text-align: center; font-size: 18px; font-weight: 500;
-  color: var(--cyb-text); letter-spacing: 1px;
+  margin: 0;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--cyb-text);
+  letter-spacing: 1px;
 }
 .login-sub {
-  margin: 4px 0 24px; text-align: center;
-  font-family: var(--cyb-mono); font-size: 11px; color: var(--cyb-text-faint);
-  text-transform: lowercase; letter-spacing: 2px;
+  margin: 4px 0 24px;
+  text-align: center;
+  font-family: var(--cyb-mono);
+  font-size: 11px;
+  color: var(--cyb-text-faint);
+  text-transform: lowercase;
+  letter-spacing: 2px;
 }
-.btn-label { font-family: var(--cyb-mono); letter-spacing: 4px; font-weight: 600; }
+.btn-label {
+  font-family: var(--cyb-mono);
+  letter-spacing: 4px;
+  font-weight: 600;
+}
 .tip {
-  margin: 16px 0 0; text-align: center;
-  color: var(--cyb-text-faint); font-size: 11px;
+  margin: 16px 0 0;
+  text-align: center;
+  color: var(--cyb-text-faint);
+  font-size: 11px;
   font-family: var(--cyb-mono);
 }
 .tip code {
-  color: var(--cyb-neon); background: var(--cyb-neon-dim);
-  padding: 1px 6px; border-radius: var(--cyb-radius-sm);
+  color: var(--cyb-neon);
+  background: var(--cyb-neon-dim);
+  padding: 1px 6px;
+  border-radius: var(--cyb-radius-sm);
 }
 
 /* 表单 label */
 :deep(.n-form-item-label__text) {
-  color: var(--cyb-text-dim); font-family: var(--cyb-mono);
-  font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--cyb-text-dim);
+  font-family: var(--cyb-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 </style>

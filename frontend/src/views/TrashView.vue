@@ -73,12 +73,19 @@ async function handlePurgeAll() {
 </template>
 
 <style scoped>
-.trash-wrap { padding: 8px; height: 100%; overflow: auto; }
+.trash-wrap {
+  padding: 8px;
+  height: 100%;
+  overflow: auto;
+}
 .trash-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
 }
-.trash-header h2 { margin: 0; font-size: 18px; }
+.trash-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
 </style>

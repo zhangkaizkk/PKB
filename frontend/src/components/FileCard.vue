@@ -1,7 +1,20 @@
 <script setup lang="ts">
 import { h } from 'vue'
 import { NButton, NTag, NPopconfirm, NDropdown } from 'naive-ui'
-import { Download, Eye, Pencil, Trash, Refresh, Close, Document, Image, Film, Code, DocumentText, FolderOutline } from '@vicons/ionicons5'
+import {
+  Download,
+  Eye,
+  Pencil,
+  Trash,
+  Refresh,
+  Close,
+  Document,
+  Image,
+  Film,
+  Code,
+  DocumentText,
+  FolderOutline,
+} from '@vicons/ionicons5'
 import { useMessage, useDialog } from 'naive-ui'
 import { filesApi } from '@/api/files'
 import type { FileItem } from '@/types'
@@ -31,7 +44,8 @@ function iconFor(mime: string) {
   if (mime.startsWith('video/')) return Film
   if (['text/plain', 'text/markdown'].includes(mime)) return Code
   if (mime.includes('msword') || mime.includes('docx')) return Document
-  if (mime.includes('excel') || mime.includes('spreadsheet') || mime.includes('xlsx')) return Document
+  if (mime.includes('excel') || mime.includes('spreadsheet') || mime.includes('xlsx'))
+    return Document
   if (mime.includes('presentation') || mime.includes('pptx')) return Document
   return FolderOutline
 }
@@ -86,7 +100,10 @@ async function onPurge() {
   })
 }
 function ocrTag(item: FileItem) {
-  const map: Record<string, { type: 'default' | 'success' | 'warning' | 'error' | 'info'; label: string }> = {
+  const map: Record<
+    string,
+    { type: 'default' | 'success' | 'warning' | 'error' | 'info'; label: string }
+  > = {
     done: { type: 'success', label: 'OCR 完成' },
     processing: { type: 'info', label: 'OCR 中' },
     failed: { type: 'error', label: 'OCR 失败' },
@@ -111,29 +128,50 @@ function ocrTag(item: FileItem) {
           size="tiny"
           round
           style="margin-left: 6px; vertical-align: middle"
-        >{{ ocrTag(item).label }}</n-tag>
+          >{{ ocrTag(item).label }}</n-tag
+        >
         <n-tag
           v-if="item.indexed_at"
           type="success"
           size="tiny"
           round
           style="margin-left: 4px; vertical-align: middle"
-        >已索引</n-tag>
+          >已索引</n-tag
+        >
       </div>
-      <div class="fc-meta">
-        {{ fmtSize(item.size_bytes) }} · {{ fmtDate(item.updated_at) }}
-      </div>
+      <div class="fc-meta">{{ fmtSize(item.size_bytes) }} · {{ fmtDate(item.updated_at) }}</div>
       <div v-if="item.tags.length" class="fc-tags">
-        <n-tag v-for="t in item.tags" :key="t.id" size="tiny" round :bordered="t.color === null" :type="t.color ? undefined : 'default'" :color="(t.color as any) || undefined">{{ t.name }}</n-tag>
+        <n-tag
+          v-for="t in item.tags"
+          :key="t.id"
+          size="tiny"
+          round
+          :bordered="t.color === null"
+          :type="t.color ? undefined : 'default'"
+          :color="(t.color as any) || undefined"
+          >{{ t.name }}</n-tag
+        >
       </div>
     </div>
     <div class="fc-actions">
-      <n-button size="tiny" quaternary @click="onPreview"><n-icon :component="Eye" /> 预览</n-button>
-      <n-button size="tiny" quaternary @click="onDownload"><n-icon :component="Download" /> 下载</n-button>
-      <n-button v-if="!trashed" size="tiny" quaternary @click="onRename"><n-icon :component="Pencil" /> 重命名</n-button>
-      <n-button v-if="!trashed" size="tiny" quaternary type="warning" @click="onSoftDelete"><n-icon :component="Trash" /> 删除</n-button>
-      <n-button v-if="trashed" size="tiny" quaternary @click="onRestore"><n-icon :component="Refresh" /> 恢复</n-button>
-      <n-button v-if="trashed" size="tiny" quaternary type="error" @click="onPurge"><n-icon :component="Close" /> 彻底删除</n-button>
+      <n-button size="tiny" quaternary @click="onPreview"
+        ><n-icon :component="Eye" /> 预览</n-button
+      >
+      <n-button size="tiny" quaternary @click="onDownload"
+        ><n-icon :component="Download" /> 下载</n-button
+      >
+      <n-button v-if="!trashed" size="tiny" quaternary @click="onRename"
+        ><n-icon :component="Pencil" /> 重命名</n-button
+      >
+      <n-button v-if="!trashed" size="tiny" quaternary type="warning" @click="onSoftDelete"
+        ><n-icon :component="Trash" /> 删除</n-button
+      >
+      <n-button v-if="trashed" size="tiny" quaternary @click="onRestore"
+        ><n-icon :component="Refresh" /> 恢复</n-button
+      >
+      <n-button v-if="trashed" size="tiny" quaternary type="error" @click="onPurge"
+        ><n-icon :component="Close" /> 彻底删除</n-button
+      >
     </div>
   </div>
 </template>
@@ -148,30 +186,52 @@ function ocrTag(item: FileItem) {
   border: 1px solid var(--cyb-border);
   border-radius: var(--cyb-radius);
   background: var(--cyb-bg-2);
-  transition: border-color var(--cyb-transition), box-shadow var(--cyb-transition);
+  transition:
+    border-color var(--cyb-transition),
+    box-shadow var(--cyb-transition);
 }
 .file-card:hover {
   border-color: var(--cyb-neon);
   box-shadow: 0 0 0 1px var(--cyb-neon-dim);
 }
 .fc-icon {
-  width: 40px; height: 40px;
-  display: flex; align-items: center; justify-content: center;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--cyb-neon-dim);
   border-radius: var(--cyb-radius-sm);
   color: var(--cyb-neon);
 }
-.fc-info { overflow: hidden; }
+.fc-info {
+  overflow: hidden;
+}
 .fc-name {
-  font-weight: 500; font-size: 14px; color: var(--cyb-text);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--cyb-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .fc-meta {
-  color: var(--cyb-text-faint); font-size: 12px; margin-top: 2px;
+  color: var(--cyb-text-faint);
+  font-size: 12px;
+  margin-top: 2px;
   font-family: var(--cyb-mono);
 }
-.fc-tags { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
-.fc-actions { display: flex; gap: 2px; flex-wrap: wrap; }
+.fc-tags {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.fc-actions {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+}
 .fc-actions :deep(.n-button--quaternary) {
   color: var(--cyb-text-dim) !important;
   border-radius: var(--cyb-radius-sm) !important;

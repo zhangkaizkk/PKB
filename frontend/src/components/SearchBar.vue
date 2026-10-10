@@ -7,10 +7,20 @@ const props = defineProps<{ q: string }>()
 const emit = defineEmits<{ search: [q: string]; clear: [] }>()
 
 const local = ref(props.q)
-watch(() => props.q, (v) => { local.value = v })
+watch(
+  () => props.q,
+  (v) => {
+    local.value = v
+  },
+)
 
-function onEnter() { emit('search', local.value.trim()) }
-function onClear() { emit('clear'); local.value = '' }
+function onEnter() {
+  emit('search', local.value.trim())
+}
+function onClear() {
+  emit('clear')
+  local.value = ''
+}
 </script>
 
 <template>

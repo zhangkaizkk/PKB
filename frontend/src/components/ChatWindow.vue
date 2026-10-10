@@ -75,21 +75,29 @@ watch(messages, scrollToBottom, { deep: true })
         <n-empty description="在下方输入问题，开始与知识库对话">
           <template #extra>
             <div class="cw-suggestions">
-              <n-tag round type="info" size="small" class="suggestion" @click="input = '我上传了哪些文档？'">
+              <n-tag
+                round
+                type="info"
+                size="small"
+                class="suggestion"
+                @click="input = '我上传了哪些文档？'"
+              >
                 我上传了哪些文档？
               </n-tag>
-              <n-tag round type="info" size="small" class="suggestion" @click="input = '最近的文件是什么？'">
+              <n-tag
+                round
+                type="info"
+                size="small"
+                class="suggestion"
+                @click="input = '最近的文件是什么？'"
+              >
                 最近的文件是什么？
               </n-tag>
             </div>
           </template>
         </n-empty>
       </div>
-      <ChatMessage
-        v-for="(msg, i) in messages"
-        :key="i"
-        :message="msg"
-      />
+      <ChatMessage v-for="(msg, i) in messages" :key="i" :message="msg" />
       <div v-if="loading" class="cw-loading">
         <n-spin size="small" /> <span style="margin-left: 8px">思考中...</span>
       </div>
@@ -101,15 +109,17 @@ watch(messages, scrollToBottom, { deep: true })
         type="textarea"
         placeholder="输入问题，按 Enter 发送，Shift+Enter 换行"
         :autosize="{ minRows: 1, maxRows: 4 }"
-        @keydown.enter.prevent.exact="send"
         :disabled="loading"
+        @keydown.enter.prevent.exact="send"
       />
       <div class="cw-actions">
-        <n-button size="small" quaternary @click="clearChat" :disabled="messages.length === 0">
+        <n-button size="small" quaternary :disabled="messages.length === 0" @click="clearChat">
           清空对话
         </n-button>
         <n-button type="primary" size="small" :disabled="loading || !input.trim()" @click="send">
-          <template #icon><n-icon><Send /></n-icon></template>
+          <template #icon
+            ><n-icon><Send /></n-icon
+          ></template>
           发送
         </n-button>
       </div>
@@ -119,35 +129,51 @@ watch(messages, scrollToBottom, { deep: true })
 
 <style scoped>
 .chat-window {
-  display: flex; flex-direction: column; height: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   background: var(--cyb-bg-0);
 }
 .cw-messages {
-  flex: 1; overflow-y: auto; padding: 20px;
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
 }
 .cw-empty {
-  display: flex; justify-content: center; align-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   height: 100%;
 }
 .cw-suggestions {
-  display: flex; gap: 8px; flex-wrap: wrap;
-  justify-content: center; margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 12px;
 }
 .suggestion {
   cursor: pointer;
   background: var(--cyb-bg-2) !important;
   border: 1px solid var(--cyb-border) !important;
   color: var(--cyb-text-dim) !important;
-  font-family: var(--cyb-mono); font-size: 12px;
-  transition: border-color var(--cyb-transition), color var(--cyb-transition);
+  font-family: var(--cyb-mono);
+  font-size: 12px;
+  transition:
+    border-color var(--cyb-transition),
+    color var(--cyb-transition);
 }
 .suggestion:hover {
   border-color: var(--cyb-neon) !important;
   color: var(--cyb-neon) !important;
 }
 .cw-loading {
-  display: flex; align-items: center; justify-content: center;
-  color: var(--cyb-text-faint); margin: 20px 0; font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cyb-text-faint);
+  margin: 20px 0;
+  font-size: 13px;
   font-family: var(--cyb-mono);
 }
 .cw-input {
@@ -156,7 +182,10 @@ watch(messages, scrollToBottom, { deep: true })
   background: var(--cyb-bg-1);
 }
 .cw-actions {
-  display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
 }
 .cw-actions :deep(.n-button--quaternary) {
   color: var(--cyb-text-dim) !important;

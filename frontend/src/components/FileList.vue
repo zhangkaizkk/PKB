@@ -61,7 +61,17 @@ function onPreview(item: FileItem) {
 </template>
 
 <style scoped>
-.file-list { margin-top: 8px; }
-.file-items { display: flex; flex-direction: column; gap: 10px; }
-.pagination { margin-top: 16px; display: flex; justify-content: center; }
+.file-list {
+  margin-top: 8px;
+}
+.file-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pagination {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+}
 </style>

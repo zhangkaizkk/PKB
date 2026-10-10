@@ -34,7 +34,11 @@ export const useFilesStore = defineStore('files', () => {
     if (size !== undefined) pageSize.value = size
     try {
       const res = await filesApi.list({
-        q, tag_id: tagId, status, page: p, page_size: pageSize.value,
+        q,
+        tag_id: tagId,
+        status,
+        page: p,
+        page_size: pageSize.value,
       } as FileListQuery)
       const data: Paginated<FileItem> = res.data
       items.value = data.items
@@ -57,9 +61,8 @@ export const useFilesStore = defineStore('files', () => {
         const res = await filesApi.previewText(item.public_id)
         previewContent.value = res.data.content
       } catch (e: any) {
-        previewError.value = e?.response?.status === 415
-          ? '该格式暂不支持在线预览'
-          : '加载预览内容失败'
+        previewError.value =
+          e?.response?.status === 415 ? '该格式暂不支持在线预览' : '加载预览内容失败'
       } finally {
         previewLoading.value = false
       }
@@ -73,8 +76,17 @@ export const useFilesStore = defineStore('files', () => {
   }
 
   return {
-    items, total, page, pageSize, loading,
-    currentPreview, previewContent, previewLoading, previewError,
-    list, openPreview, closePreview,
+    items,
+    total,
+    page,
+    pageSize,
+    loading,
+    currentPreview,
+    previewContent,
+    previewLoading,
+    previewError,
+    list,
+    openPreview,
+    closePreview,
   }
 })

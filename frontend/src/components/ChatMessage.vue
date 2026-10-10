@@ -26,30 +26,35 @@ const hasCitations = computed(() => props.message.citations && props.message.cit
       <div class="cm-bubble" :class="{ 'error-bubble': message.error }">
         {{ message.content }}
       </div>
-      <div v-if="!isUser && message.model" class="cm-meta">
-        模型: {{ message.model }}
-      </div>
+      <div v-if="!isUser && message.model" class="cm-meta">模型: {{ message.model }}</div>
       <div v-if="!isUser && hasCitations" class="cm-citations">
-        <CitationCard
-          v-for="(c, i) in message.citations"
-          :key="i"
-          :citation="c"
-        />
+        <CitationCard v-for="(c, i) in message.citations" :key="i" :citation="c" />
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.chat-message { display: flex; gap: 12px; margin-bottom: 20px; }
-.chat-message.is-user { flex-direction: row-reverse; }
+.chat-message {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.chat-message.is-user {
+  flex-direction: row-reverse;
+}
 .cm-avatar {
-  width: 32px; height: 32px;
-  display: flex; align-items: center; justify-content: center;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--cyb-bg-2);
   border: 1px solid var(--cyb-border);
   border-radius: var(--cyb-radius-sm);
-  font-family: var(--cyb-mono); font-size: 14px; font-weight: 700;
+  font-family: var(--cyb-mono);
+  font-size: 14px;
+  font-weight: 700;
   flex-shrink: 0;
 }
 .chat-message.is-assistant .cm-avatar {
@@ -62,17 +67,23 @@ const hasCitations = computed(() => props.message.citations && props.message.cit
   border-color: var(--cyb-neon-dim);
   background: var(--cyb-neon-dim);
 }
-.cm-body { max-width: 70%; }
+.cm-body {
+  max-width: 70%;
+}
 .chat-message.is-user .cm-body {
-  display: flex; flex-direction: column; align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 .cm-bubble {
   background: var(--cyb-bg-2);
   border: 1px solid var(--cyb-border);
   border-radius: var(--cyb-radius);
   padding: 12px 16px;
-  font-size: 14px; line-height: 1.7;
-  white-space: pre-wrap; word-break: break-word;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
   color: var(--cyb-text);
 }
 .chat-message.is-user .cm-bubble {
@@ -90,8 +101,12 @@ const hasCitations = computed(() => props.message.citations && props.message.cit
   border-left: 2px solid var(--cyb-danger);
 }
 .cm-meta {
-  font-size: 11px; color: var(--cyb-text-faint); margin-top: 4px;
+  font-size: 11px;
+  color: var(--cyb-text-faint);
+  margin-top: 4px;
   font-family: var(--cyb-mono);
 }
-.cm-citations { margin-top: 8px; }
+.cm-citations {
+  margin-top: 8px;
+}
 </style>

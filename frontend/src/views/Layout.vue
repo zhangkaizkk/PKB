@@ -4,7 +4,19 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useFilesStore } from '@/stores/files'
 import { useUploadStore } from '@/stores/upload'
-import { useMessage, NButton, NInput, NAvatar, NDropdown, NLayout, NLayoutSider, NLayoutHeader, NLayoutContent, NMenu, NTag } from 'naive-ui'
+import {
+  useMessage,
+  NButton,
+  NInput,
+  NAvatar,
+  NDropdown,
+  NLayout,
+  NLayoutSider,
+  NLayoutHeader,
+  NLayoutContent,
+  NMenu,
+  NTag,
+} from 'naive-ui'
 import { FolderOutline, Trash, ChatbubbleEllipsesOutline } from '@vicons/ionicons5'
 import DropZone from '@/components/DropZone.vue'
 import UploadQueue from '@/components/UploadQueue.vue'
@@ -90,7 +102,15 @@ onMounted(async () => {
       />
       <div v-if="menuValue === 'files'" class="tags-section">
         <div class="tags-list">
-          <n-tag v-if="!selectedTagId" round type="info" size="small" style="cursor: pointer" @click="onTagSelect(undefined)">全部</n-tag>
+          <n-tag
+            v-if="!selectedTagId"
+            round
+            type="info"
+            size="small"
+            style="cursor: pointer"
+            @click="onTagSelect(undefined)"
+            >全部</n-tag
+          >
         </div>
       </div>
     </n-layout-sider>
@@ -105,23 +125,36 @@ onMounted(async () => {
             size="large"
             style="width: 400px"
             @keyup.enter="onSearch(searchQ)"
-            @update:value="(v: string) => { if (!v) onSearch('') }"
+            @update:value="
+              (v: string) => {
+                if (!v) onSearch('')
+              }
+            "
           >
             <template #prefix>🔍</template>
           </n-input>
-          <n-button size="large" type="primary" style="margin-left: 8px" @click="onSearch(searchQ)">搜索</n-button>
+          <n-button size="large" type="primary" style="margin-left: 8px" @click="onSearch(searchQ)"
+            >搜索</n-button
+          >
         </div>
         <div class="top-right">
           <n-dropdown
             trigger="click"
             :options="[{ key: 'logout', label: '退出登录' }]"
-            @select="(k) => { if (k === 'logout') { auth.logout(); router.push('/login') } }"
+            @select="
+              (k) => {
+                if (k === 'logout') {
+                  auth.logout()
+                  router.push('/login')
+                }
+              }
+            "
           >
             <n-button quaternary :show-icon="false">
               <n-avatar class="pkb-admin-avatar" size="small">
                 {{ auth.user?.username?.[0]?.toUpperCase() || 'U' }}
               </n-avatar>
-              <span style="margin-left:8px">{{ auth.user?.username }}</span>
+              <span style="margin-left: 8px">{{ auth.user?.username }}</span>
             </n-button>
           </n-dropdown>
         </div>
@@ -130,14 +163,12 @@ onMounted(async () => {
       <n-layout-content class="main-content">
         <!-- 全部文件：显示拖拽区 + 上传队列 -->
         <template v-if="menuValue === 'files'">
-          <DropZone @files="(fs) => fs.forEach(f => upload.enqueue(f))" />
+          <DropZone @files="(fs) => fs.forEach((f) => upload.enqueue(f))" />
           <UploadQueue v-if="upload.queue.length" />
         </template>
 
         <!-- 子路由渲染出口 -->
-        <router-view
-          v-slot="{ Component }"
-        >
+        <router-view v-slot="{ Component }">
           <component :is="Component" :trashed="menuValue === 'trash'" />
         </router-view>
       </n-layout-content>
@@ -148,38 +179,79 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.app-layout { height: 100vh; }
+.app-layout {
+  height: 100vh;
+}
 
 .logo {
-  height: 64px; display: flex; align-items: center; justify-content: center; gap: 4px;
-  font-family: var(--cyb-mono); font-size: 18px; font-weight: 700;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-family: var(--cyb-mono);
+  font-size: 18px;
+  font-weight: 700;
   border-bottom: 1px solid var(--cyb-border);
   letter-spacing: 2px;
 }
-.logo-tag { color: var(--cyb-neon); text-shadow: var(--cyb-neon-glow); }
-.logo-sub {
-  color: var(--cyb-neon); animation: blink 1s step-end infinite;
+.logo-tag {
+  color: var(--cyb-neon);
+  text-shadow: var(--cyb-neon-glow);
 }
-@keyframes blink { 50% { opacity: 0; } }
+.logo-sub {
+  color: var(--cyb-neon);
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
 
-.tags-section { padding: 12px 16px; }
-.tags-title { font-size: 12px; color: var(--cyb-text-faint); margin-bottom: 8px; font-family: var(--cyb-mono); }
-.tags-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.tags-section {
+  padding: 12px 16px;
+}
+.tags-title {
+  font-size: 12px;
+  color: var(--cyb-text-faint);
+  margin-bottom: 8px;
+  font-family: var(--cyb-mono);
+}
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 
 .top-bar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 24px; height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 56px;
 }
-.top-left { display: flex; align-items: center; gap: 8px; }
-.top-right { display: flex; align-items: center; }
+.top-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.top-right {
+  display: flex;
+  align-items: center;
+}
 
 .main-content {
-  padding: 24px; overflow: auto;
+  padding: 24px;
+  overflow: auto;
   background: var(--cyb-bg-0);
 }
 
 /* 搜索框前缀 emoji 替换 */
-.top-left :deep(.n-input__prefix) { font-size: 14px; opacity: 0.7; }
+.top-left :deep(.n-input__prefix) {
+  font-size: 14px;
+  opacity: 0.7;
+}
 
 .pkb-admin-avatar {
   background: var(--cyb-neon) !important;

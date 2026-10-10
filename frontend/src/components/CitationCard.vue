@@ -24,18 +24,28 @@ function downloadUrl(publicId: string | null) {
   <n-card size="small" class="citation-card" :bordered="true">
     <div class="cc-header">
       <span class="cc-title">📄 {{ citation.title || '未知文档' }}</span>
-      <n-tag v-if="citation.score !== null && citation.score !== undefined" :type="scoreColor(citation.score)" size="tiny" round>
+      <n-tag
+        v-if="citation.score !== null && citation.score !== undefined"
+        :type="scoreColor(citation.score)"
+        size="tiny"
+        round
+      >
         相关度 {{ (citation.score * 100).toFixed(0) }}%
       </n-tag>
     </div>
-    <div v-if="citation.chunk_index !== null && citation.chunk_index !== undefined" class="cc-chunk">
+    <div
+      v-if="citation.chunk_index !== null && citation.chunk_index !== undefined"
+      class="cc-chunk"
+    >
       分块 #{{ citation.chunk_index + 1 }}
     </div>
     <div v-if="citation.snippet" class="cc-snippet">{{ citation.snippet }}</div>
     <div v-if="citation.public_id" class="cc-footer">
       <a :href="downloadUrl(citation.public_id)" target="_blank">
         <n-button size="tiny" quaternary>
-          <template #icon><n-icon><DownloadOutline /></n-icon></template>
+          <template #icon
+            ><n-icon><DownloadOutline /></n-icon
+          ></template>
           下载文件
         </n-button>
       </a>

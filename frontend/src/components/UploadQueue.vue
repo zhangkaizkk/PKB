@@ -27,17 +27,34 @@ function fmtSize(b: number) {
       <div class="uq-bar">
         <n-progress
           type="line"
-          :percentage="t.status === 'done' || t.status === 'duplicate' ? 100 : t.status === 'error' ? 100 : Math.max(t.progress, 0)"
-          :status="t.status === 'error' ? 'error' : t.status === 'done' || t.status === 'duplicate' ? 'success' : undefined"
+          :percentage="
+            t.status === 'done' || t.status === 'duplicate'
+              ? 100
+              : t.status === 'error'
+                ? 100
+                : Math.max(t.progress, 0)
+          "
+          :status="
+            t.status === 'error'
+              ? 'error'
+              : t.status === 'done' || t.status === 'duplicate'
+                ? 'success'
+                : undefined
+          "
           :show-indicator="false"
         />
       </div>
       <div class="uq-status" :class="t.status">
         {{
-          t.status === 'uploading' ? `${t.progress}%` :
-          t.status === 'done' ? '✓ 已上传' :
-          t.status === 'duplicate' ? '⚠ 已存在' :
-          t.status === 'error' ? `✗ ${t.error || '失败'}` : '等待中'
+          t.status === 'uploading'
+            ? `${t.progress}%`
+            : t.status === 'done'
+              ? '✓ 已上传'
+              : t.status === 'duplicate'
+                ? '⚠ 已存在'
+                : t.status === 'error'
+                  ? `✗ ${t.error || '失败'}`
+                  : '等待中'
         }}
       </div>
     </div>
@@ -52,13 +69,48 @@ function fmtSize(b: number) {
   padding: 12px 14px;
   margin-bottom: 16px;
 }
-.uq-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: #666; font-size: 13px; }
-.uq-item { display: grid; grid-template-columns: 1fr 90px 160px auto; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px dashed #f0f0f0; font-size: 13px; }
-.uq-item:last-child { border-bottom: none; }
-.uq-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.uq-size { color: #888; font-size: 12px; text-align: right; }
-.uq-status { font-size: 12px; min-width: 80px; text-align: right; }
-.uq-status.error { color: #d03050; }
-.uq-status.duplicate { color: #f0a020; }
-.uq-status.done { color: #18a058; }
+.uq-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  color: #666;
+  font-size: 13px;
+}
+.uq-item {
+  display: grid;
+  grid-template-columns: 1fr 90px 160px auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dashed #f0f0f0;
+  font-size: 13px;
+}
+.uq-item:last-child {
+  border-bottom: none;
+}
+.uq-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.uq-size {
+  color: #888;
+  font-size: 12px;
+  text-align: right;
+}
+.uq-status {
+  font-size: 12px;
+  min-width: 80px;
+  text-align: right;
+}
+.uq-status.error {
+  color: #d03050;
+}
+.uq-status.duplicate {
+  color: #f0a020;
+}
+.uq-status.done {
+  color: #18a058;
+}
 </style>
