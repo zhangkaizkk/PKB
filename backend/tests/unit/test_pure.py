@@ -1,13 +1,14 @@
 """纯函数单测 — 不依赖 DB / 网络，直接跑 python -m pytest。"""
+
 from __future__ import annotations
 
 import pytest
 
-from app.utils.files import make_title_from_filename, sanitize_filename
 from app.services.reranker_service import LlmReranker, NoReranker
-
+from app.utils.files import make_title_from_filename, sanitize_filename
 
 # ==================== sanitize_filename ====================
+
 
 class TestSanitizeFilename:
     def test_normal(self):
@@ -38,6 +39,7 @@ class TestSanitizeFilename:
 
 # ==================== make_title_from_filename ====================
 
+
 class TestMakeTitle:
     def test_strips_extension(self):
         assert make_title_from_filename("hello.pdf") == "hello"
@@ -53,6 +55,7 @@ class TestMakeTitle:
 
 
 # ==================== LlmReranker._parse_indices ====================
+
 
 class TestParseIndices:
     def test_normal(self):
@@ -75,6 +78,7 @@ class TestParseIndices:
 
 
 # ==================== NoReranker ====================
+
 
 @pytest.mark.asyncio
 class TestNoReranker:

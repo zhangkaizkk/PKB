@@ -1,3 +1,8 @@
+"""手工调试脚本 — 不参与 pytest 收集。
+
+运行前提：后端已启动在 http://localhost:8000，且 admin/admin123 可登录。
+执行：python scripts/debug/quick_download.py
+"""
 import httpx
 
 BASE = "http://localhost:8000"

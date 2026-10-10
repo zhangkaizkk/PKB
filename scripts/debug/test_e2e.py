@@ -1,4 +1,8 @@
-"""阶段二端到端验证脚本 — 简化版，不 purge 留数据。"""
+"""手工 E2E 验证脚本 — 不参与 pytest 收集。
+
+运行前提：后端已启动在 http://localhost:8000，且 admin/admin123 可登录。
+执行：python scripts/debug/test_e2e.py
+"""
 import httpx
 import sys
 

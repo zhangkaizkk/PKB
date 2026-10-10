@@ -63,3 +63,7 @@ ignore = ["E501", "B008", "B905", "F821"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit"]
+asyncio_mode = "strict"
