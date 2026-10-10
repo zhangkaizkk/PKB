@@ -74,13 +74,15 @@ async def post_openai_compat(
     - 4xx 客户端错误（400/401/403/404）：立即抛 OpenAiCompatError，不重试
     - 429/5xx 服务端错误 + 网络异常：重试 max_retries 次（指数退避 + 读 Retry-After）
     """
+    if max_retries < 1:
+        max_retries = 1
+
     url = f"{base_url.rstrip('/')}{path}"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
 
-    last_exc: Exception | None = None
     for attempt in range(1, max_retries + 1):
         try:
             client = get_client()
@@ -91,7 +93,6 @@ async def post_openai_compat(
                 timeout=timeout,
             )
         except _RETRY_EXCEPTIONS as exc:
-            last_exc = exc
             if attempt < max_retries:
                 wait = _exponential_backoff(attempt)
                 logger.warning(
@@ -144,8 +145,8 @@ async def post_openai_compat(
         return resp.json()
 
     # 理论不会走到这里（最后一次循环要么 return 要么 raise）
-    assert last_exc is not None
-    raise OpenAiCompatError(f"API 调用最终失败: {last_exc}") from last_exc
+    # 不用 assert：max_retries<1 已在开头规范化为 1
+    raise OpenAiCompatError(f"API 调用失败：重试次数耗尽（{max_retries}）")
 
 
 def _exponential_backoff(
