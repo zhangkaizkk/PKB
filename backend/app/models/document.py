@@ -5,8 +5,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from sqlalchemy import CHAR, BigInteger, DateTime, Enum, ForeignKey, String, Text, func
-from sqlalchemy.dialects.mysql import LONGTEXT
+from sqlalchemy import CHAR, BigInteger, Enum, ForeignKey, String, Text, func
+from sqlalchemy.dialects.mysql import LONGTEXT, TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -42,13 +42,13 @@ class Document(Base):
     )
     ocr_error: Mapped[str | None] = mapped_column(String(1024), nullable=True)
 
-    indexed_at: Mapped[datetime | None] = mapped_column(DateTime(6), nullable=True)
+    indexed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(fsp=6), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(6), server_default=func.now(6))
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(fsp=6), server_default=func.now(6))
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(6), server_default=func.now(6), onupdate=func.now(6)
+        TIMESTAMP(fsp=6), server_default=func.now(6), onupdate=func.now(6)
     )
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(6), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(fsp=6), nullable=True)
 
     # 关系
     owner: Mapped[User] = relationship(back_populates="documents")

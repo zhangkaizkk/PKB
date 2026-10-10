@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, Text, func
-from sqlalchemy.dialects.mysql import JSON, LONGTEXT
+from sqlalchemy import BigInteger, ForeignKey, Integer, String, Text, func
+from sqlalchemy.dialects.mysql import JSON, LONGTEXT, TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -28,4 +28,4 @@ class QaHistory(Base):
     completion_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(6), server_default=func.now(6))
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(fsp=6), server_default=func.now(6))
