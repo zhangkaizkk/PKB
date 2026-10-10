@@ -29,6 +29,11 @@ def _get_ocr():
     """懒加载 PaddleOCR 实例（全局复用，避免每次加载模型）。"""
     global _ocr_instance
     if _ocr_instance is None:
+        # PaddlePaddle 3.x CPU 上 oneDNN + PIR 兼容性 bug
+        # NotImplementedError: ConvertPirAttribute2RuntimeAttribute not support [DoubleAttribute]
+        # import paddleocr 之前关闭 oneDNN 加速即可绕过
+        os.environ.setdefault("FLAGS_use_mkldnn", "0")
+        os.environ.setdefault("FLAGS_use_onednn", "0")
         from paddleocr import PaddleOCR
 
         # PaddleOCR 3.x 参数迁移：
