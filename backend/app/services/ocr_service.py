@@ -31,11 +31,14 @@ def _get_ocr():
     if _ocr_instance is None:
         from paddleocr import PaddleOCR
 
+        # PaddleOCR 3.x 参数迁移：
+        # - use_angle_cls → use_textline_orientation（3.x 取代方向分类）
+        # - use_gpu: bool → device="gpu"/"cpu"（3.x 改用 device 字符串）
+        # - show_log 已移除，用 logging 控制
         _ocr_instance = PaddleOCR(
-            use_angle_cls=True,
+            use_textline_orientation=True,
             lang=settings.ocr_lang,
-            use_gpu=settings.ocr_use_gpu,
-            show_log=False,
+            device="gpu" if settings.ocr_use_gpu else "cpu",
         )
     return _ocr_instance
 
@@ -65,15 +68,15 @@ def _ocr_image(abs_path: Path) -> tuple[str | None, str | None]:
     """单张图片 OCR。"""
     try:
         ocr = _get_ocr()
-        result = ocr.ocr(str(abs_path), cls=True)
+        # PaddleOCR 3.x：用 predict() 代替 ocr(path, cls=True)
+        result = ocr.predict(str(abs_path))
 
-        # PaddleOCR 返回 [[[box, (text, conf)], ...]] 格式
+        # 3.x predict 返回 [{rec_texts, rec_scores, ...}] 结构
         parts: list[str] = []
-        if result and result[0]:
-            for line in result[0]:
-                if line and len(line) >= 2:
-                    text = line[1][0] if isinstance(line[1], (list, tuple)) else str(line[1])
-                    parts.append(text)
+        if result:
+            first = result[0]
+            texts = first.get("rec_texts") or first.get("texts") or []
+            parts.extend(str(t) for t in texts if t)
 
         content = "\n".join(parts).strip()
         return (content, None) if content else ("", None)
@@ -126,14 +129,13 @@ def _ocr_pdf_page(page) -> str:
 
         try:
             ocr = _get_ocr()
-            result = ocr.ocr(tmp_path, cls=True)
+            result = ocr.predict(tmp_path)
 
             parts: list[str] = []
-            if result and result[0]:
-                for line in result[0]:
-                    if line and len(line) >= 2:
-                        text = line[1][0] if isinstance(line[1], (list, tuple)) else str(line[1])
-                        parts.append(text)
+            if result:
+                first = result[0]
+                texts = first.get("rec_texts") or first.get("texts") or []
+                parts.extend(str(t) for t in texts if t)
 
             return "\n".join(parts).strip()
 
